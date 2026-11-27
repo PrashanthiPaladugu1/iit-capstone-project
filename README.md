@@ -376,6 +376,138 @@ You also need the price, statement and Screener data in place, and the document 
 
 Run a script with the project settings loaded: `bin/run_py.sh some_script.py`.
 
+## Restore the Chroma Vector Database
+
+The Chroma vector database is distributed separately through the project's GitHub Release. It is not stored in the Git repository.
+
+**GitHub Release:** https://github.com/PrashanthiPaladugu1/iit-capstone-project/releases/tag/chroma_db
+
+### 1. Download the database files
+
+Download all three assets from the `chroma_db` release:
+
+| File | Description |
+|---|---|
+| `chroma-index-complete.zip` | Complete Chroma HNSW vector index |
+| `chroma-sqlite-split.z01` | First segment of the split SQLite archive |
+| `chroma-sqlite-split.zip` | Final segment of the split SQLite archive |
+
+**Important:** Keep all three files in the same directory. Do not rename the files.
+
+### 2. Reassemble the SQLite archive
+
+Open Terminal and navigate to the directory containing the downloaded files. For example:
+
+```bash
+cd ~/Downloads/chroma_db
+```
+
+Combine the split SQLite archive:
+
+```bash
+zip -s 0 chroma-sqlite-split.zip --out chroma-sqlite.zip
+```
+
+This reconstructs the original SQLite ZIP archive from the `.z01` and `.zip` segments.
+
+Verify both ZIP archives:
+
+```bash
+unzip -t chroma-sqlite.zip
+unzip -t chroma-index-complete.zip
+```
+
+Both commands should complete without errors.
+
+### 3. Extract the database files
+
+The application expects the Chroma database at:
+
+```text
+AgenticStockResearchAndPortfolioManager/project-db/chroma/
+```
+
+From the repository root, create the destination directory:
+
+```bash
+mkdir -p AgenticStockResearchAndPortfolioManager/project-db/chroma
+```
+
+Extract the SQLite database and vector index:
+
+```bash
+unzip ~/Downloads/chroma_db/chroma-sqlite.zip \
+  -d AgenticStockResearchAndPortfolioManager/project-db/chroma
+
+unzip ~/Downloads/chroma_db/chroma-index-complete.zip \
+  -d AgenticStockResearchAndPortfolioManager/project-db/chroma
+```
+
+If a Chroma database already exists, stop the application and back it up before replacing or extracting files.
+
+The expected directory structure is:
+
+```text
+AgenticStockResearchAndPortfolioManager/
+└── project-db/
+    └── chroma/
+        ├── chroma.sqlite3
+        └── 05b0b537-8225-44c1-9771-2db368339b13/
+            ├── data_level0.bin
+            ├── header.bin
+            ├── length.bin
+            ├── link_lists.bin
+            └── index_metadata.pickle
+```
+
+Preserve the UUID directory and all its index files.
+
+### 4. Verify the restored database
+
+Check that the SQLite database and index files exist:
+
+```bash
+ls -lh AgenticStockResearchAndPortfolioManager/project-db/chroma/chroma.sqlite3
+
+ls -lh AgenticStockResearchAndPortfolioManager/project-db/chroma/05b0b537-8225-44c1-9771-2db368339b13/
+```
+
+After setting up the Python virtual environment and installing project dependencies, run the RAG verification script from the repository root:
+
+```bash
+AgenticStockResearchAndPortfolioManager/bin/run_py.sh rag_check.py
+```
+
+The verification script displays the Chroma collection status and executes sample searches against TCS annual reports and transcripts.
+
+### 5. Start the application
+
+Once the Chroma database, Python environment, configuration and required Ollama models are available:
+
+```bash
+cd AgenticStockResearchAndPortfolioManager
+bin/start_all.sh
+bin/status.sh
+```
+
+Open the application:
+
+http://127.0.0.1:8502
+
+To stop the application:
+
+```bash
+bin/stop_all.sh
+```
+
+### Important Notes
+
+- The Chroma database is excluded from Git through `.gitignore`. Download and restore it separately after cloning the repository.
+- The GitHub Release contains the Chroma vector store (`chroma.sqlite3` and its HNSW index directory), not the entire `project-db` folder.
+- `rag_ingest.sqlite` is a separate RAG ingestion-tracking database and is not included in this release.
+- Do not rename or remove the UUID index directory or its files.
+- Do not commit the extracted database or downloaded ZIP archives to Git.
+
 ## Test
 
 ```bash
