@@ -1,0 +1,3 @@
+bin/rag_build_bg.sh --trial --symbols TCS; sleep 5
+
+tail -f runtime/logs/rag_build.log

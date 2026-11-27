@@ -1,0 +1,67 @@
+cd /Users/sangram.dash2/Downloads/AgenticStockResearchAndPortfolioManager/screener-document-download
+
+# Every stock in the CSV (5,541)
+python3 code/download_screener_docs.py --all
+
+# Safer: do it in batches of 200
+python3 code/download_screener_docs.py --all --start 0 --limit 200
+python3 code/download_screener_docs.py --all --start 200 --limit 200
+
+# Smaller: skip annual reports and Excel, keep transcripts and PPTs
+python3 code/download_screener_docs.py --all --types transcript ppt --no-excel
+
+# Preview only, downloads nothing
+python3 code/download_screener_docs.py --all --dry-run --limit 20
+
+
+# Everything the script supports: Excel + annual reports + transcripts + PPTs
+python3 code/download_screener_docs.py --all --start 0 --limit 20
+
+# Excel + transcripts + PPTs (what you ran, no annual reports)
+python3 code/download_screener_docs.py --all --start 0 --limit 20 --types transcript ppt
+
+# Excel only
+python3 code/download_screener_docs.py --all --start 0 --limit 20 --types transcript --no-excel
+# (no flag gives "Excel only", so use the next option instead)
+
+
+
+
+python3 code/download_screener_docs.py --all --start 0 --limit 20
+
+python3 code/download_screener_docs.py --all --start 2 --limit 16 --workers 4
+python3 code/download_screener_docs.py --all --start 2 --limit 200 --workers 8
+
+
+python3 code/download_screener_docs.py --all --start 2 --limit 16 --workers 4            # skips tracked stocks
+python3 code/download_screener_docs.py --all --start 2 --limit 16 --workers 4 --force    # re-checks everything
+
+Safer batches: run 200 to 500 stocks at a time, such as --start 0 --limit 200, then --start 200 --limit 200, and so on. A batch is easy to resume or stop, and the tracker skips stocks that already finished.
+
+python3 code/download_screener_docs.py --all --start 0 --limit 5541 --workers 4
+python3 code/download_screener_docs.py --all --start 0 --workers 4
+
+
+python3 code/nse_indices.py                     # all indices, today's folder; use --force to redo
+python3 code/nse_bhavcopy.py                    # last 1700 days, weekdays only, existing files skipped
+python3 code/nse_bhavcopy.py --days 30          # a shorter range
+
+
+cd code && python3 -m unittest discover -s tests -p "test_*.py"        # full suite, 218 tests
+python3 code/nse_indices.py [--force] [--out DIR]
+python3 code/nse_bhavcopy.py [--days N] [--end-date YYYY-MM-DD] [--force]
+python3 code/download_screener_docs.py --all --start 2 --limit 16 --workers 4
+python3 code/refresh_auth.py --username you@example.com
+
+
+python3 code/download_screener_docs.py --index Nifty50                    # all 50
+python3 code/download_screener_docs.py --index Nifty50 --limit 10         # first 10
+python3 code/download_screener_docs.py --index Nifty50 --start 10 --limit 10 --workers 4
+python3 code/download_screener_docs.py --index nifty-50 --dry-run --limit 3
+
+python3 code/download_screener_docs.py --stock INFY
+python3 code/download_screener_docs.py --stock INFY --stock TCS     # repeat for several
+python3 code/download_screener_docs.py --stock INFY --types transcript --no-excel
+python3 code/download_screener_docs.py --stock INFY --force         # re-check even if tracked
+
+I will have another Project-Code folder where all Agents MCP DB and RAG code will be there without touching the screener -document-download dir

@@ -1,0 +1,15 @@
+# Agentic Research and Portfolio Maker (Python 3.12). Recreate with: uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requirements.txt
+duckdb==2.0.0
+pandas==3.1.1
+numpy==2.5.5
+mcp==2.3.0
+ollama==0.6.3
+langgraph==1.2.22
+langchain-core==1.8.3
+pydantic==2.14.3
+plotly==7.1.0
+streamlit==1.67.0
+pytest==9.2.0
+chromadb
+openpyxl
+pymupdf

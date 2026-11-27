@@ -1,0 +1,61 @@
+{
+  "_help": [
+    "Single source of truth for every folder and file path used by the app, the bin/ scripts and setup.sh.",
+    "Edit paths HERE. Do not hard-code paths in code or scripts.",
+    "A relative value is resolved against 'root'. An absolute value is used as it is (use this on the VM if data lives elsewhere).",
+    "'root' itself is resolved against the folder that holds this file; '..' is the parent project folder.",
+    "{name} inside a value is replaced by another entry, for example {data_root}.",
+    "Entries under 'patterns' also take values given by the caller, for example {symbol}.",
+    "Use another file with the environment variable ARPM_PATHS_FILE."
+  ],
+
+  "paths": {
+    "root": "..",
+
+    "code_dir": "project-code",
+    "venv_dir": "{code_dir}/.venv",
+    "requirements_file": "{code_dir}/requirements.txt",
+    "app_entry": "{code_dir}/app_ui.py",
+
+    "config_dir": "config",
+    "env_file": "{config_dir}/arpm.env",
+    "env_example": "{config_dir}/arpm.env.example",
+
+    "data_root": "screener-document-download",
+    "prices_dir": "{data_root}/data_stock_bhavcopy_nifty50",
+    "documents_dir": "{data_root}/data",
+    "reference_dir": "{data_root}/Reference-Files",
+    "nifty50_list": "{reference_dir}/nifty-50.csv",
+    "index_dir": "{data_root}/data_nse_index",
+    "screener_csv_dir": "{data_root}/data_csv_screener",
+
+    "db_dir": "project-db",
+    "chroma_dir": "{db_dir}/chroma",
+    "duckdb_file": "{db_dir}/arpm.duckdb",
+    "fundamentals_duckdb": "{db_dir}/fundamentals.duckdb",
+    "screener_duckdb": "{db_dir}/screener.duckdb",
+    "usage_db": "{db_dir}/usage.sqlite",
+    "settings_db": "{db_dir}/settings.sqlite",
+    "portfolios_db": "{db_dir}/portfolios.sqlite",
+    "chats_db": "{db_dir}/chats.sqlite",
+    "rag_db": "{db_dir}/rag_ingest.sqlite",
+
+    "runtime_dir": "runtime",
+    "run_dir": "{runtime_dir}/run",
+    "log_dir": "{runtime_dir}/logs"
+  },
+
+  "patterns": {
+    "price_file": "{prices_dir}/{symbol}.csv",
+    "financials_file": "{documents_dir}/{symbol}/Financials_{symbol}.xlsx",
+    "symbol_documents_dir": "{documents_dir}/{symbol}"
+  },
+
+  "never_read_by_the_app": [
+    "{data_root}/screener_auth.json",
+    "{data_root}/secret",
+    "{data_root}/download_tracker.txt",
+    "{data_root}/downloaded_history.json",
+    "{data_root}/logs"
+  ]
+}

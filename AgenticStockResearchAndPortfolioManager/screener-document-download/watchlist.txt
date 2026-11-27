@@ -1,0 +1,3 @@
+# Screener.in company slugs, one per line. Blank lines and '#' comments are ignored.
+MEESHO
+TCS

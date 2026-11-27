@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agentic Research and Portfolio Maker: architecture, status and work plan (Nifty 50)</title>
+<style>
+  body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;font-size:14.5px;line-height:1.6;color:#1f2328;background:#fff;margin:0}
+  main{max-width:1020px;margin:0 auto;padding:32px 24px 48px}
+  h1{font-size:26px;margin:0 0 4px}
+  h2{font-size:19px;margin:38px 0 10px;padding-top:8px;border-top:1px solid #e5e7eb}
+  h3{font-size:15px;margin:22px 0 6px}
+  p{margin:6px 0}
+  .muted{color:#57606a}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.5px}
+  th,td{border:1px solid #e5e7eb;padding:6px 9px;text-align:left;vertical-align:top}
+  th{background:#f7f8fa}
+  code{background:#f7f8fa;border:1px solid #e5e7eb;border-radius:3px;padding:0 4px;font-size:12.5px}
+  .kpi{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+  .kpi div{flex:1 1 150px;background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:10px 12px}
+  .kpi b{display:block;font-size:20px}
+  .kpi span{color:#57606a;font-size:12.5px}
+  .tag{display:inline-block;font-size:11.5px;border:1px solid #e5e7eb;border-radius:3px;padding:0 6px;background:#f7f8fa;white-space:nowrap}
+  .done{color:#1a7f37;border-color:#1a7f37}
+  .todo{color:#9a6700;border-color:#9a6700}
+  .risk{color:#cf222e;border-color:#cf222e}
+  .box{border:1px solid #e5e7eb;background:#f7f8fa;border-radius:4px;padding:8px 12px;margin:8px 0}
+  .layer{border:1px solid #3b82d4;border-radius:4px;padding:8px 12px;margin:6px 0;background:#fff}
+  .layer.alt{border-color:#7c5cd8}
+  .layer.stub{border-style:dashed;border-color:#9a6700}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+  .row>div{flex:1 1 200px;border:1px solid #e5e7eb;background:#f7f8fa;border-radius:4px;padding:8px 10px;font-size:13px}
+  .row>div.model{border-color:#7c5cd8;background:#f5f2fd}
+  .row>div.nomodel{border-color:#1a7f37;background:#f1faf4}
+  .row>div.stub{border-style:dashed;border-color:#9a6700;background:#fffaf0}
+  .arrow{text-align:center;color:#57606a;margin:0;line-height:1.2}
+  .flow{border:1px solid #e5e7eb;border-radius:4px;padding:12px 14px;margin:10px 0;background:#fff}
+  .step{border:1px solid #3b82d4;border-radius:4px;padding:6px 10px;margin:0;background:#fff;font-size:13px}
+  .step.m{border-color:#7c5cd8;background:#f5f2fd}
+  .step.n{border-color:#1a7f37;background:#f1faf4}
+  .step.s{border-style:dashed;border-color:#9a6700;background:#fffaf0}
+  .legend span{display:inline-block;margin-right:14px;font-size:12.5px}
+  .sw{display:inline-block;width:12px;height:12px;border:1px solid #3b82d4;vertical-align:middle;margin-right:4px}
+  .sw.m{border-color:#7c5cd8;background:#f5f2fd}
+  .sw.n{border-color:#1a7f37;background:#f1faf4}
+  .sw.s{border-style:dashed;border-color:#9a6700;background:#fffaf0}
+  .bar{height:14px;background:#3b82d4;border-radius:2px}
+  .bar.alt{background:#7c5cd8}
+  .barrow{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:13px}
+  .barrow .lbl{width:210px;flex:none}
+  .barrow .val{width:110px;flex:none;color:#57606a}
+  ul,ol{margin:6px 0 6px 20px;padding:0}
+  pre{background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:8px 12px;font-size:12.5px;overflow-x:auto;margin:8px 0}
+  footer{margin-top:40px;padding-top:10px;border-top:1px solid #e5e7eb;text-align:center;color:#57606a;font-size:12px}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Agentic Research and Portfolio Maker</h1>
+<p class="muted">Architecture, what is built and working, and what is left. Nifty 50 only. Updated 26 Nov 2026 (traffic flow in 3.1 to 3.6; 3.6 is the compare example, traced from the code and not yet run live; the news agent, parallel mode and "Tools used" invoke lines were added the same day, see 3.7 and 5.5). Figures marked "measured" were read from the code, the databases or the test run on this Mac (M1 Pro, 32 GB). Anything not measured is marked as an estimate. Earlier versions of this page are kept as <code>Nifty50-Project-Status-and-Work-Plan.v1.html</code> (20 Nov, morning) and <code>.v2.html</code> (20 Nov, evening).</p>
+
+<div class="kpi">
+  <div><b>50</b><span>stocks in scope (Nifty 50 only)</span></div>
+  <div><b>55,167</b><span>price rows after duplicate removal, 23 Mar 2022 to 13 Nov 2026</span></div>
+  <div><b>49 / 50</b><span>financial workbooks loaded (20,747 values)</span></div>
+  <div><b>528,991</b><span>document chunks indexed, from 1,477 PDFs</span></div>
+  <div><b>626</b><span>automated tests passing (29 test files), last full run 26 Nov 2026</span></div>
+  <div><b>5 of 7</b><span>agents built (technical, fundamental, news, research analyst, portfolio manager). Not built: compare, prompt enhancer</span></div>
+</div>
+
+<h2>1. Where we stand</h2>
+<table>
+<tr><th>Area</th><th>State</th><th>Detail</th></tr>
+<tr><td>Data downloaders (Screener, NSE index, NSE bhavcopy)</td><td><span class="tag done">done</span></td><td>Live in <code>screener-document-download/</code>. The app only reads from it. It never reads <code>screener_auth.json</code>, <code>secret/</code>, the tracker, the history file or <code>logs/</code>.</td></tr>
+<tr><td>Folder layout and paths</td><td><span class="tag done">done</span></td><td>Parent folder holds <code>project-code/</code>, <code>project-db/</code>, <code>runtime/</code>, <code>config/</code>, <code>bin/</code>, <code>screener-document-download/</code>, <code>global-context/</code>, <code>global-architecture/</code>. Every path comes from <code>config/paths.json</code>. A test fails if a path is hard-coded in any <code>.py</code> file.</td></tr>
+<tr><td>Price layer and indicators</td><td><span class="tag done">done</span></td><td><code>prices_db.py</code>, <code>indicators.py</code>, <code>market_data.py</code>. DuckDB file built, 50 stocks.</td></tr>
+<tr><td>Financial statements layer</td><td><span class="tag done">done</span></td><td><code>fundamentals_db.py</code>, <code>fundamentals.py</code>. 49 workbooks loaded. SBILIFE has no workbook.</td></tr>
+<tr><td>Document search (RAG)</td><td><span class="tag done">done</span></td><td>Index complete: 1,477 files, 528,991 chunks, 0 failed files. Build took 4 h 01 m (about 36 chunks per second). Search tool is live.</td></tr>
+<tr><td>AI gateway, providers, settings, budget</td><td><span class="tag done">done</span></td><td><code>gateway.py</code>, <code>providers.py</code>, <code>model_settings.py</code>, <code>budget.py</code>. Verified live against Ollama only. Hugging Face and the external API are tested with mocked HTTP only.</td></tr>
+<tr><td>MCP servers</td><td><span class="tag done">4 of 4</span></td><td><code>mcp_market_data.py</code> (10 tools), <code>mcp_fundamentals.py</code> (11 tools), <code>mcp_portfolio.py</code> (4 tools) and <code>mcp_news.py</code> (3 tools) are built.</td></tr>
+<tr><td>Agents</td><td><span class="tag todo">5 of 7</span></td><td>Technical, fundamental, news, research analyst and portfolio manager are built. <code>agent_compare</code> and <code>prompt_enhancer</code> do not exist.</td></tr>
+<tr><td>Research analyst</td><td><span class="tag done">built 21 Nov</span></td><td><code>agent_research_analyst.py</code>. Splits a mixed or open question, runs the specialists on one budget (one after the other by default; optional parallel mode, 3.7), merges the answers and checks the merge. Live times 59 to 136 s. See 4.7 and 5.3.</td></tr>
+<tr><td>News agent</td><td><span class="tag done">built 26 Nov</span></td><td><code>agent_news.py</code>, <code>news_tools.py</code>, <code>mcp_news.py</code>. Headlines only, from 10 RSS feeds of 5 Indian sites, with a rough sentiment count. Live times 20 to 40 s. See 3.7 and 5.5. Sentiment accuracy is not measured.</td></tr>
+<tr><td>Portfolio manager</td><td><span class="tag done">built 23 Nov</span></td><td><code>agent_portfolio_manager.py</code>, <code>scorecard.py</code>, <code>portfolio.py</code>, <code>mcp_portfolio.py</code>, <code>guardrails.py</code>. See 5.4.</td></tr>
+<tr><td>Router</td><td><span class="tag done">keyword version</span></td><td>Plain code, no model call, 74 route tests (plus 13 news cases in <code>test_news_integration</code>). Routes: technical, fundamental, documents, portfolio, news, both. An LLM router is a possible later upgrade.</td></tr>
+<tr><td>Tokenomics (cost tracking)</td><td><span class="tag todo">Part 1 of 3</span></td><td>Part 1 is built and tested: cost columns in the usage log, a rates table, a daily cost cap, <code>tokenomics.py</code> (what-if and call tree). <b>Part 2</b> (Admin Tokenomics tab) and <b>Part 3</b> (optional Langfuse tracing) are not built. No rate has been entered, so no price is shown.</td></tr>
+<tr><td>Web app (Streamlit)</td><td><span class="tag done">done</span></td><td>ChatGPT-style layout: conversation list on the left, chat window on the right, Admin as a sidebar view. Runs on port 8502.</td></tr>
+<tr><td>Prompt enhancer, out-of-scope refusal, compare agent</td><td><span class="tag todo">not built</span></td><td>See sections 12 and 13.</td></tr>
+</table>
+
+<h2>2. Data</h2>
+
+<h3>2.1 Inventory</h3>
+<table>
+<tr><th>Source</th><th>Location (key in <code>config/paths.json</code>)</th><th>Content</th><th>Used by</th></tr>
+<tr><td>Prices</td><td><code>prices_dir</code>: <code>&lt;SYMBOL&gt;.csv</code></td><td>Daily open, high, low, close, volume, turnover, trades, delivery quantity and percent. 7.2 MB. Loaded into <code>arpm.duckdb</code> (table <code>prices</code>, 55,167 rows, 50 stocks).</td><td>Technical agent</td></tr>
+<tr><td>Financials</td><td><code>documents_dir</code>: <code>&lt;SYMBOL&gt;/Financials_&lt;SYMBOL&gt;.xlsx</code>, sheet "Data Sheet"</td><td>Profit and loss, quarters, balance sheet, cash flow, price block. Loaded into <code>fundamentals.duckdb</code> (<code>fin_meta</code> 49 rows, <code>fin_values</code> 20,747 rows). Units are not stated in the sheet (probably Rs crore), and the agent says so.</td><td>Fundamental agent</td></tr>
+<tr><td>Screener snapshots</td><td><code>screener_csv_dir</code>: one CSV per download, 45 files for 43 dates (5 Jun to 20 Nov 2026), about 5,300 to 5,550 companies and 62 columns each</td><td>Price, market cap, P/E, P/B, PEG, RSI, MACD, moving averages, volume, ROCE, debt to equity, OPM, NPM, GPM, EPS, promoter, FII, DII and public holding. Only the 50 Nifty stocks are loaded into <code>screener.duckdb</code> (<code>screener_db.py</code>; the last file per day wins). Price-based columns change daily; statement-based columns change only at result refreshes. Not live data: every answer states the snapshot date.</td><td>Fundamental agent (<code>screener_*</code> tools)</td></tr>
+<tr><td>Transcripts</td><td><code>documents_dir</code>: <code>Transcript_*.pdf</code></td><td>999 files. All indexed.</td><td>RAG</td></tr>
+<tr><td>Annual reports</td><td><code>documents_dir</code>: <code>Annual_Report_&lt;YEAR&gt;.pdf</code></td><td>667 files on disk. The tool default is the latest 3 per stock. <b>The full build used <code>--annual-reports 5</code></b> (241 annual-report files indexed).</td><td>RAG</td></tr>
+<tr><td>Presentations</td><td><code>documents_dir</code>: <code>PPT_*.pdf</code></td><td>1,740 files on disk. The latest 5 per stock are indexed by default.</td><td>RAG</td></tr>
+<tr><td>Stock list</td><td><code>nifty50_list</code>: <code>Reference-Files/nifty-50.csv</code></td><td>Name, symbol, industry, snapshot ratios as of 17 Nov 2026.</td><td>Stock check, valuation snapshot</td></tr>
+</table>
+
+<h3>2.2 Known gaps (still true)</h3>
+<table>
+<tr><th>Issue</th><th>Effect</th><th>How the app handles it</th></tr>
+<tr><td>INFY has the Excel file but no PDFs (site returns HTTP 403 to scripts)</td><td>No document answers for INFY</td><td>The fundamental agent says it has no documents for INFY.</td></tr>
+<tr><td>SBILIFE has no Excel workbook</td><td>No financial statements for SBILIFE</td><td>The agent says the statements are missing.</td></tr>
+<tr><td>ITC and TRENT have no transcripts. BAJAJ-AUTO has no presentations</td><td>Smaller document coverage</td><td>The agent reports "no transcript on file". Verified live for ITC.</td></tr>
+<tr><td>Prices are not adjusted for splits, bonuses and demergers</td><td>Long-range returns and volatility can be wrong around corporate actions</td><td>A caveat is returned by the price tools and passed on in the answer. A jump detector is not built yet.</td></tr>
+<tr><td>Short histories: TMPV 260 rows, ETERNAL 394, JIOFIN 788 (measured in the database on 21 Nov)</td><td>Under 1 year for TMPV</td><td>Warning guardrail G6 is planned, not built.</td></tr>
+<tr><td>Holiday files repeat the previous day's rows</td><td>Duplicate (symbol, date) rows</td><td>Exact duplicates are dropped and counted when the price database is built. Two rows with the same key but different values are an error.</td></tr>
+<tr><td>No index history, no point-in-time membership</td><td>No benchmark, beta or survivorship-free back-test</td><td>Caveat only. Not built.</td></tr>
+<tr><td>Banks, finance companies and insurers report differently</td><td>Operating margin, interest cover and debt to equity are meaningless for them</td><td>Not computed for them. The tool returns a warning and the agent passes it on.</td></tr>
+</table>
+
+<h2>3. Architecture as built</h2>
+<div class="legend">
+  <span><span class="sw"></span>code or component</span>
+  <span><span class="sw m"></span>calls a language model</span>
+  <span><span class="sw n"></span>plain code, no model</span>
+  <span><span class="sw s"></span>stub, not built</span>
+</div>
+
+<div class="layer"><b>Streamlit app</b> (<code>app_ui.py</code> starts <code>ui_app.py</code>, port 8502). Left sidebar: New chat, search, Recents grouped by date, Admin. Right: chat window. Conversations are stored in <code>chats.sqlite</code> through <code>chat_store.py</code>.</div>
+<p class="arrow">&#8595; question and conversation id</p>
+<div class="layer"><b><code>ui_app.answer()</code></b>: calls the router. A single-topic question goes to one agent. A <code>both</code> question goes to the research analyst, which runs the specialists (technical, fundamental and, for a news question, news) and merges their answers. The tool trace and budget come back with the answer.</div>
+<p class="arrow">&#8595;</p>
+<div class="row"><div class="nomodel"><b>router.py</b><br>keyword rules. Routes: technical, fundamental, documents, portfolio, news, both. Open "research" requests also go to both. No model call.</div></div>
+<p class="arrow">&#8595;</p>
+<div class="row">
+  <div class="model"><b>agent_technical</b> (built)<br>prices, returns, indicators, movers<br><span class="muted">MCP: market-data, 10 tools</span></div>
+  <div class="model"><b>agent_fundamental</b> (built)<br>financial statements, growth, ratios, valuation, document search<br><span class="muted">MCP: fundamentals, 11 tools (incl. 3 <code>screener_*</code>)</span></div>
+</div>
+<div class="row">
+  <div class="model"><b>agent_news</b> (built 26 Nov)<br>headlines and a rough sentiment count<br><span class="muted">MCP: news, 3 tools. Its own class and loop, not a <code>TechnicalAgent</code>.</span></div>
+  <div class="model"><b>agent_research_analyst</b> (built 21 Nov)<br>for <code>both</code> questions: one split call, runs the agents above, one merge call<br><span class="muted">no tools of its own</span></div>
+  <div class="model"><b>agent_portfolio_manager</b> (built 23 Nov)<br>scorecard, suggest, build, evaluate<br><span class="muted">MCP: portfolio, 4 tools; guardrails G1 to G7 inside</span></div>
+</div>
+<p class="arrow">&#8595; the technical and fundamental agents share one loop (class <code>TechnicalAgent</code>); the news agent has its own. All run on one <code>Budget</code>, which the analyst also shares with them</p>
+<div class="row">
+  <div class="nomodel"><b>market-data MCP server</b><br>subprocess, stdio<br>reads <code>arpm.duckdb</code></div>
+  <div class="nomodel"><b>fundamentals MCP server</b><br>subprocess, stdio<br>reads <code>fundamentals.duckdb</code>, <code>screener.duckdb</code> and Chroma</div>
+  <div class="nomodel"><b>portfolio MCP server</b><br>subprocess, stdio<br>reads <code>arpm.duckdb</code> and <code>screener.duckdb</code></div>
+  <div class="nomodel"><b>news MCP server</b><br>subprocess, stdio<br>downloads 10 RSS feeds, 15-minute cache</div>
+</div>
+<p class="arrow">&#8595;</p>
+<div class="row">
+  <div class="nomodel"><b>arpm.duckdb</b><br>prices</div>
+  <div class="nomodel"><b>fundamentals.duckdb</b><br>financial statements</div>
+  <div class="nomodel"><b>screener.duckdb</b><br>Screener snapshots: 50 stocks, 43 dates, 2,150 rows, 536 KB</div>
+  <div class="nomodel"><b>chroma/</b><br>528,991 chunks, 6.1 GB</div>
+  <div class="nomodel"><b>usage.sqlite</b><br>one row per model call, with tokens and cost</div>
+  <div class="nomodel"><b>settings.sqlite</b><br>roles, providers, rates, cost cap, audit</div>
+  <div class="nomodel"><b>chats.sqlite</b><br>conversations</div>
+  <div class="nomodel"><b>rag_ingest.sqlite</b><br>index build state</div>
+</div>
+<p class="arrow">&#8595; only the agent loop (chat role) and the RAG search and build (embedding role) call models</p>
+<div class="layer alt"><b>AI gateway</b> (<code>gateway.py</code>, <code>model_settings.py</code>, <code>providers.py</code>). Callers name a <b>role</b> (chat, router, embedding, summary, judge, sentiment), never a provider or model. The gateway reads the saved settings on every call, picks the provider, retries once, counts tokens, works out the cost, times the call and writes the usage row. A daily cost cap blocks paid calls only. Only <code>providers.py</code> may talk to a model service, and a test enforces it.</div>
+<p class="arrow">&#8595;</p>
+<div class="row">
+  <div class="model"><b>Local Ollama</b> (on now)<br><code>gemma4:12b</code> chat, <code>nomic-embed-text</code> embedding. Verified live.</div>
+  <div class="model"><b>Hugging Face</b> (off)<br>Hosted inference API, key from <code>HF_TOKEN</code>. Mocked-HTTP tests only.</div>
+  <div class="model"><b>External API</b> (off)<br>Generic OpenAI-compatible adapter. For the UpGrad API once its format is known. Mocked-HTTP tests only.</div>
+</div>
+
+<p class="box"><b>Principles that the code enforces.</b> (1) Numbers come from tools (DuckDB, Excel data), never from the model and never from vector similarity. (2) An agent that answers without calling any tool is reminded once, then replaced by a "no tool data" message. (3) Every document-based answer cites file and page. (4) A collection is searched only after it is marked complete. (5) Nothing is deleted: old files are kept under versioned names, and the UI has no delete button. (6) The research analyst may not add a number or a page citation that neither specialist gave. (7) A rate is never guessed: an external call with no rate is shown as unpriced.</p>
+
+<h3 id="traffic">3.1 Traffic flow: chat app, router, agents, tools, gateway</h3>
+<p>This is the path one question takes. Every arrow is a real function call in the code today. Colours as in the legend above: purple calls a language model, green is plain code.</p>
+
+<div class="flow">
+  <div class="step"><b>1. Chat app</b> (<code>ui_app._ask()</code>). Saves the question to <code>chats.sqlite</code>, shows it, then takes the global lock <code>_CHAT_LOCK</code> and shows "Working...". One question runs at a time, because the agents are shared objects that keep per-run state.</div>
+  <p class="arrow">&#8595; <code>answer(question, conversation_id)</code></p>
+  <div class="step n"><b>2. Router</b> (<code>router.route()</code>). Keyword rules, plain code, no model call. Returns <code>documents</code>, <code>portfolio</code>, <code>news</code>, <code>fundamental</code>, <code>technical</code> or <code>both</code>. Order of the rules:
+    <ol>
+      <li>a documents word (annual report, transcript, concall, capex, attrition...) gives <code>documents</code>;</li>
+      <li>a portfolio word (portfolio, rebalance, asset allocation, basket of stocks) gives <code>portfolio</code>;</li>
+      <li>a news word (news, headline, sentiment, announcement, latest on, in the news, buzz, rumour...) alone gives <code>news</code>; with a price or statement word as well it gives <code>both</code> (a documents or portfolio word still wins);</li>
+      <li>a statement word (revenue, ROE, P/E...) or a Screener word (PE, OPM, NPM, promoter, FII, PEG...) marks it fundamental. Next to a Screener word, RSI and MACD are not counted as technical, because the Screener table carries them;</li>
+      <li>a fundamental and a technical word together give <code>both</code>;</li>
+      <li>no such word, but an open request (research, should I invest, cheap, tell me about...) or a comparison (compare, vs) gives <code>both</code>;</li>
+      <li>otherwise <code>fundamental</code> if marked, else <code>technical</code> (also the default when nothing matches).</li>
+    </ol></div>
+  <p class="arrow">&#8595; route name</p>
+  <div class="row">
+    <div class="step m"><b>portfolio</b><br>one agent: <code>agent_portfolio_manager</code> (<code>mcp_portfolio.py</code>: scorecard, suggest, build, evaluate; guardrails G1 to G7 run inside the tools)</div>
+    <div class="step m"><b>news</b><br>one agent: <code>agent_news</code> (<code>mcp_news.py</code>: <code>news_search</code>, <code>news_sentiment</code>, <code>news_market</code>)</div>
+    <div class="step"><b>technical</b><br>one agent: <code>agent_technical</code></div>
+    <div class="step"><b>fundamental</b> and <b>documents</b><br>one agent: <code>agent_fundamental</code>. A documents question differs only in which tool the model picks (<code>rag_search_documents</code>).</div>
+    <div class="step m"><b>both</b><br><code>ResearchAnalyst.run()</code>, which calls the technical, fundamental and (when asked about news) news agents. Saved with route label <code>research</code>.</div>
+  </div>
+  <p class="arrow">&#8595; each agent runs the loop in 4.2, calling tools in its own MCP server and the model through the gateway</p>
+  <div class="step"><b>3. Back in the chat app.</b> <code>answer()</code> returns text, tool trace, budget, stop reason and route. The app saves the assistant message, shows it, and reruns the page so the sidebar lists the conversation. An exception is caught and shown as "I could not answer this: ...", never a blank page.</div>
+</div>
+
+<h3 id="analyst-flow">3.2 How the research analyst works with the technical and fundamental agents</h3>
+<p>The analyst is a coordinator. It has <b>no tools</b> and no data access of its own, so it cannot produce a number itself. It owns two model calls (split, merge) and borrows the two specialists, which already exist and are reused unchanged. The same <code>TechnicalAgent</code> and <code>FundamentalAgent</code> objects serve single-topic questions and the analyst.</p>
+
+<div class="flow">
+  <div class="step"><code>ui_app.answer()</code> gets <code>both</code> and calls <code>research.run(question, session)</code>. One <code>Budget</code> is created: <b>24 model calls, 40 tool calls, 80,000 tokens</b>. It is passed to everything below, so the whole question is capped, not each agent.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step m"><b>A. Split</b> &mdash; gateway role <code>chat</code>, node <code>split</code>, temperature 0. Output: JSON <code>{"technical": "...", "fundamental": "..."}</code>. Each part repeats the stock names, so each reads on its own. A part is empty when not needed.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="row">
+    <div class="step n"><b>Both parts present</b><br>run technical, then fundamental, one after the other</div>
+    <div class="step n"><b>One part empty</b><br>run that agent only. Its answer is returned as it is. <b>No merge call</b> (saves a model call).</div>
+    <div class="step s"><b>Split call failed or JSON unreadable</b><br>run both agents on the <b>whole</b> question, each told "answer only your half"</div>
+  </div>
+  <p class="arrow">&#8595;</p>
+  <div class="row">
+    <div class="step m"><b>B1. agent_technical.run(part)</b><br>loop of 4.2 &rarr; tools in <code>mcp_market_data</code> (10 tools: quote, OHLCV, returns, 52-week, delivery, indicators, compare, movers...) &rarr; DuckDB <code>arpm.duckdb</code></div>
+    <div class="step m"><b>B2. agent_fundamental.run(part)</b><br>loop of 4.2 &rarr; tools in <code>mcp_fundamentals</code> (11 tools: 7 <code>fsa_*</code> statement tools, 3 <code>screener_*</code> snapshot tools, 1 <code>rag_search_documents</code>) &rarr; <code>fundamentals.duckdb</code>, <code>screener.duckdb</code>, Chroma</div>
+  </div>
+  <p class="arrow">&#8595; each returns answer, tool trace and any stop reason. A failed or stopped specialist reads "Not available: reason" and does not stop the other.</p>
+  <div class="step m"><b>C. Merge</b> &mdash; gateway role <code>chat</code>, node <code>synthesis</code>. Input: the question and the two answers (each cut to 6,000 characters). Rules: use only numbers and facts in the two answers, keep document citations next to their point, never write a page for the analysts themselves, for a buy or sell question say it cannot advise and give evidence for and against, group by stock.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="row">
+    <div class="step n"><b>Citation check</b><br><code>strip_unsupported_citations</code> removes any bracketed page citation neither specialist wrote</div>
+    <div class="step n"><b>Number check</b><br><code>unsupported_numbers</code>: a number in the merged text that is not in the question or either answer (whole numbers up to 10 are ignored) &rarr; the merged text is dropped</div>
+    <div class="step s"><b>Fallback</b><br>the two labelled specialist answers are shown as they are, with a note under the answer</div>
+  </div>
+</div>
+
+<h3>3.3 Where each piece of traffic goes</h3>
+<table>
+<tr><th>Hop</th><th>From &rarr; to</th><th>How</th><th>Model?</th></tr>
+<tr><td>1</td><td>Browser &rarr; Streamlit</td><td>Streamlit page on port 8502 (<code>app_ui.py</code> starts <code>ui_app.py</code>)</td><td>no</td></tr>
+<tr><td>2</td><td><code>ui_app.answer()</code> &rarr; <code>router.route()</code></td><td>direct Python call, keyword match</td><td>no</td></tr>
+<tr><td>3</td><td><code>answer()</code> &rarr; agent or analyst</td><td>direct Python call on cached objects from <code>get_agents()</code> (built once per app start; restart the app after code changes)</td><td>no</td></tr>
+<tr><td>4</td><td>Analyst &rarr; specialist agents</td><td>direct Python call <code>agent.run(part, budget=shared, parent_call_id=split call id, focus=...)</code></td><td>no</td></tr>
+<tr><td>5</td><td>Agent &rarr; gateway</td><td><code>gateway.chat(role="chat", messages, tools)</code>. The agent names a role, never a model.</td><td>yes</td></tr>
+<tr><td>6</td><td>Gateway &rarr; provider &rarr; model</td><td><code>model_settings</code> picks provider and model for the role on every call. <code>providers.py</code> calls Ollama (now), Hugging Face or an external API. Usage row written.</td><td>yes</td></tr>
+<tr><td>7</td><td>Agent &rarr; MCP server</td><td>LangGraph <code>ToolNode</code> &rarr; <code>mcp_client.McpServer</code> &rarr; subprocess over stdio (one process per server, started once)</td><td>no</td></tr>
+<tr><td>8</td><td>MCP tool &rarr; data</td><td>read-only DuckDB queries, Chroma search. Only <code>rag_search_documents</code> calls the gateway (role <code>embedding</code>) to embed the query.</td><td>embedding only</td></tr>
+<tr><td>9</td><td>Answer &rarr; browser</td><td><code>chats.sqlite</code> write, then <code>st.rerun()</code></td><td>no</td></tr>
+</table>
+
+<h3>3.4 Example: "Is TCS a good stock to buy" (route <code>both</code>)</h3>
+<pre>chat app  -> answer()  -> route() = both  -> ResearchAnalyst.run()          one Budget: 24 / 40 / 80,000
+  call 1   split      (chat, parent none)      -> {"technical": "...TCS price, returns, trend, RSI...",
+                                                    "fundamental": "...TCS growth, margins, ROE, valuation, documents..."}
+  agent_technical   (parent = call 1)
+     model call -> tool get_returns / get_indicators ... -> model call writes the technical answer
+  agent_fundamental (parent = call 1)
+     model call -> fsa_compute_ratios, fsa_get_valuation, rag_search_documents (embedding call inside the tool) ...
+     model call writes the fundamental answer, with file and page for each document point
+  call N   synthesis  (chat, parent = call 1)  -> one merged answer
+  citation check, number check  -> merged answer, or the two labelled answers plus a note
+chat app saves and shows the answer, route label "research", tool trace, budget</pre>
+<p class="muted">Every model call carries a <code>parent_call_id</code> and a node name (<code>split</code>, <code>model</code>, <code>synthesis</code>) in <code>usage.sqlite</code>, so the Admin call tree (<code>tokenomics.call_tree</code>, UI tab not built yet) shows this shape. Measured on the Mac with gemma4:12b: 59 s, 82 s and 136 s for the three examples in 4.7. The specialists run one after the other by default; an optional parallel mode is described in 3.7.</p>
+
+<h3>3.5 Known gaps in this traffic flow</h3>
+<ul>
+<li><b>No compare or out-of-scope route.</b> A portfolio route now exists (checked 26 Nov: <code>agent_portfolio_manager.py</code>, <code>mcp_portfolio.py</code>, <code>ui_app.answer()</code> and tests are in place; a live run is still to be recorded). A compare question still falls into <code>both</code> through the word "compare", and <code>agent_compare</code> is not built (see 3.6).</li>
+<li><b>A Screener-only question still goes through a full model loop.</b> "Show me NIFTY 50 stocks with PE RSI OPM NPM" took 103 s because the model re-types a 50-row table. An unmatched typo ("OMP" for OPM) comes back from the tool as an "unknown metric" message. A question seen stuck on "Working..." in the web app is <b>not yet explained</b>: the log showed no error and no usage row for it.</li>
+<li><b>RSI-only screens</b> ("which stocks have RSI above 70") go to <code>technical</code>, whose tools have no all-stock RSI screen, so the Screener tool is not reached.</li>
+<li><b>No timeout on an MCP tool call</b> and no progress text while a long answer runs. The page shows only "Working...".</li>
+<li><b>Guardrails</b> and the prompt enhancer sit before the router in the design but are not built (section 12).</li>
+</ul>
+
+<h3 id="compare-flow">3.6 Example: "Compare TCS with Infosys" (route <code>both</code>, traced from the code on 26 Nov, not yet run live)</h3>
+<p>There is no <code>agent_compare</code> yet. The word "compare" is in the router's <code>COMPARE</code> list, and the question has no document, portfolio, statement or price word, so it takes the same path as any open request: the research analyst.</p>
+
+<div class="flow">
+  <div class="step"><b>1. Browser to chat app.</b> <code>ui_app._ask()</code> saves "Compare TCS with Infosys" to <code>chats.sqlite</code>, takes <code>_CHAT_LOCK</code>, shows "Working...".</div>
+  <p class="arrow">&#8595; <code>answer(question, conversation_id)</code></p>
+  <div class="step n"><b>2. Router.</b> No documents word, no portfolio word, no statement or price word. <code>compare</code> matches <code>COMPARE</code> &rarr; route <code>both</code>. No model call.</div>
+  <p class="arrow">&#8595; <code>research.run(question)</code>, one shared Budget: 24 model calls, 40 tool calls, 80,000 tokens</p>
+  <div class="step m"><b>3. Split</b> (analyst, role <code>chat</code>, node <code>split</code>). Asks for JSON: a technical question and a fundamental question, each naming both stocks. If the JSON is unreadable, both agents get the whole question plus "answer only your half".</div>
+  <p class="arrow">&#8595; technical part first, then fundamental part (one after the other)</p>
+  <div class="row">
+    <div class="step m"><b>4a. agent_technical</b><br>loop of 4.2. Likely tools in <code>mcp_market_data</code>: <code>compare_stocks(["TCS","INFY"])</code>, <code>get_returns</code>, <code>get_indicators</code> &rarr; <code>arpm.duckdb</code> (prices, 50 stocks)</div>
+    <div class="step m"><b>4b. agent_fundamental</b><br>loop of 4.2. Likely tools in <code>mcp_fundamentals</code>: <code>fsa_compute_ratios</code>, <code>fsa_get_valuation</code> per stock, maybe <code>screener_get_snapshot</code> &rarr; <code>fundamentals.duckdb</code>, <code>screener.duckdb</code></div>
+  </div>
+  <p class="arrow">&#8595; inside 4b, only if the model chooses to call it</p>
+  <div class="row">
+    <div class="step n"><b>5. RAG: <code>rag_search_documents</code></b><br>embeds the query (gateway role <code>embedding</code>), searches Chroma, keeps passages scoring 0.65 or more. <b>TCS:</b> annual report, transcripts and presentations are indexed. <b>INFY: no documents indexed</b>, so a search returns <code>found=false</code> and the agent must say so.</div>
+    <div class="step s"><b>Not forced.</b> Nothing in the code makes a compare question search documents. A plain "compare" often needs only the statement and price tools.</div>
+  </div>
+  <p class="arrow">&#8595; each agent returns answer, tool trace and any stop reason</p>
+  <div class="step m"><b>6. Merge</b> (analyst, role <code>chat</code>, node <code>synthesis</code>). Groups the points by stock. Uses only numbers and facts from the two answers.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="row">
+    <div class="step n"><b>Citation check, then number check</b><br>a bracketed page citation neither agent wrote is removed. A number in the merged text that is in neither answer drops the whole merge.</div>
+    <div class="step s"><b>Fallback</b><br>the two labelled specialist answers are shown, with a note under the answer.</div>
+  </div>
+  <p class="arrow">&#8595;</p>
+  <div class="step"><b>7. Back to the browser.</b> <code>chats.add_message</code> saves the answer, tool trace, budget and route label <code>research</code>. <code>st.rerun()</code> shows the answer, a "Tools used" expander and a "Stopped early" warning if any.</div>
+</div>
+
+<table>
+<tr><th>Count</th><th>For this question</th></tr>
+<tr><td>Model calls</td><td>1 split + about 2 to 4 per specialist + 1 merge = roughly 6 to 10 (estimate, from the loop shape)</td></tr>
+<tr><td>Time</td><td>Measured for similar both-route questions on gemma4:12b: 59 s, 82 s and 136 s (4.7). Not measured for this question.</td></tr>
+<tr><td>Usage rows</td><td>Every model call and the embedding call carry <code>parent_call_id</code> and a node name in <code>usage.sqlite</code></td></tr>
+</table>
+
+<p class="box"><b>Gaps for compare questions.</b> (1) <code>agent_compare</code> is not built, so no code-ranked winner: the model writes the comparison, within the number checks. The design is in <code>PROMPT_CONTEXT.md</code> section 5. (2) No company-name mapping in code: "Infosys" must be turned into the symbol INFY by the model, and the tools accept symbols only. Untested. (3) INFY has no indexed documents, so a document side of the comparison is missing for it. (4) Nothing forces a document search.</p>
+
+<h3 id="news-flow">3.7 News agent, parallel mode and the "Tools used" invoke lines (built 26 Nov)</h3>
+<p><b>News agent.</b> <code>agent_news.py</code> is an independent agent with its own class and loop (12 steps at most, plus the shared Budget). It is <b>not</b> a <code>TechnicalAgent</code>. Only the router (single-topic question) and the research analyst (a mixed question that asks for news) call it. Its tools live in the <code>news</code> MCP server (<code>mcp_news.py</code>):</p>
+<table>
+<tr><th>Tool</th><th>What it does</th><th>Model?</th></tr>
+<tr><td><code>news_search(stock, days, limit)</code></td><td>Headlines that name one Nifty 50 stock (company name matched through an alias table of all 50 stocks), newest first, one story once, at most 4 per site</td><td>no</td></tr>
+<tr><td><code>news_sentiment(stock, days)</code></td><td>Labels up to 12 of those headlines positive, negative or neutral with gateway role <code>sentiment</code> (default <code>gemma4:12b</code>); <b>code adds up the counts</b>; a missing label is counted "unlabelled", never guessed</td><td>one call</td></tr>
+<tr><td><code>news_market(days, limit)</code></td><td>Latest market headlines with no stock named</td><td>no</td></tr>
+</table>
+<ul>
+<li><b>Sources:</b> 10 RSS feeds from 5 sites: Economic Times (6 feeds), Mint, Business Standard, Hindu BusinessLine, NDTV Profit. Headlines only (title, source, date, link); no article page is downloaded. Feeds are cached for 15 minutes; a failed feed is named in the answer and the others still answer. Live-blog and price-page titles ("Share Price Highlights", "Stock Price History", "Share Price Today", "Live Updates") are dropped.</li>
+<li><b>Left out:</b> Moneycontrol (newest item April 2024), Financial Express (invalid XML), Zee Business (HTTP 403), Google News (price-page spam), NSE announcements API (HTTP 301). The terms of use of the five sites were <b>not reviewed</b>.</li>
+<li><b>Measured (26 Nov, <code>gemma4:12b</code>, real feeds):</b> single-topic news question 20 to 40 s with one tool call; a combined RSI and news question through the analyst 42 s. Only 1 to 4 headlines per stock come back, because the feeds are general market feeds. <b>Sentiment accuracy is not measured</b>: three models agreed on 9 to 10 of 12 headlines, which says nothing about being right.</li>
+<li><b>Analyst:</b> with a news agent the split prompt may return a third part, <code>news</code>, only when the user asks about news. The merge adds extra rules (headlines only, no price move claimed from a headline) only when a news answer exists.</li>
+</ul>
+
+<p><b>Parallel mode (off by default).</b> Admin &rarr; Agents tab holds one checkbox: run the technical and fundamental agents at the same time. <code>answer()</code> reads the setting <code>agents</code> before every mixed question, so a change needs no restart. <code>Budget</code> has a lock and per-thread depth; the gateway keeps its last cost per thread. <b>Measured once:</b> "Compare TCS with INFY" took 187.5 s one after the other and 188.1 s in parallel (6 against 8 model calls, 20,163 against 45,533 tokens; one run each, the model chose different tools). No speed-up on this Mac; probably Ollama serves one request at a time, not confirmed. Worth testing again on a provider that serves requests side by side.</p>
+
+<p><b>"Tools used" invoke lines.</b> The panel under an answer now shows who handed the question to whom, then each agent's own tool calls:</p>
+<pre>[router]   invoke_agent_research_analyst({"question": "Tell me the RSI of TCS and the latest news on it"})
+[research] invoke_agent_technical({"question": "...RSI of TCS..."})
+[technical] get_indicators({...})
+[research] invoke_agent_news({"question": "...latest news on TCS..."})
+[news]     news_search({"stock": "TCS", "days": 7})</pre>
+<p class="muted">Portfolio calls carry the label <code>[portfolio]</code>. Gap: the single-agent routes (technical, fundamental, documents) show no <code>[router]</code> line yet.</p>
+<p class="box"><b>Not checked.</b> The new Admin Agents tab and the <code>sentiment</code> row in the Admin Models tab were tested by unit tests only and have not been opened in a browser. The app must be restarted (<code>bin/stop_app.sh &amp;&amp; bin/start_app.sh</code>) before any of this shows, because <code>get_agents()</code> is cached.</p>
+
+
+
+<h2>4. Flow charts</h2>
+
+<h3>4.1 One chat question, end to end</h3>
+<div class="flow">
+  <div class="step">User types a question in the chat window (or clicks an example)</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step">UI saves the question to <code>chats.sqlite</code> (first question becomes the title, 48 characters)</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step n"><b>router.route()</b>: keyword rules decide <code>technical</code>, <code>fundamental</code>, <code>documents</code>, <code>portfolio</code>, <code>news</code> or <code>both</code>. No model.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="row">
+    <div class="step"><b>technical</b><br>runs agent_technical</div>
+    <div class="step"><b>fundamental</b> or <b>documents</b><br>runs agent_fundamental</div>
+    <div class="step"><b>news</b><br>runs agent_news</div>
+    <div class="step"><b>portfolio</b><br>runs agent_portfolio_manager</div>
+    <div class="step"><b>both</b><br>runs the <b>research analyst</b> (flow 4.7): split, technical agent, fundamental agent, news agent when asked, merge</div>
+  </div>
+  <p class="arrow">&#8595; each agent runs the loop in 4.2</p>
+  <div class="step">UI shows the answer (the analyst's merged text for <code>both</code>, with a note if its checks changed anything), the tool trace and the budget summary</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step">Answer saved to <code>chats.sqlite</code>. Page reruns and shows the answer, a "Tools used" expander and the input pill.</div>
+</div>
+
+<h3>4.2 The agent loop (same for the technical and fundamental agents)</h3>
+<div class="flow">
+  <div class="step n"><b>Start</b>: build the system prompt, add the question, create a <code>Budget</code> (12 model calls, 20 tool calls, 40,000 tokens, depth 3; the analyst uses one shared budget of 24, 40 and 80,000; a cost limit exists but is off for local models)</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step m"><b>Model node</b>: <code>gateway.chat(role="chat", messages, tools)</code> goes to <b>gemma4:12b</b> through Ollama. The model returns tool calls or text.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="row">
+    <div class="step"><b>Tool calls returned</b><br>go to the tool node</div>
+    <div class="step"><b>Text returned, tools already used</b><br>final answer</div>
+    <div class="step"><b>Text returned, no tool ever used</b><br>reminder message once, then loop back to the model node. A second miss gives the fixed "no tool data" answer.</div>
+  </div>
+  <p class="arrow">&#8595; tool calls</p>
+  <div class="step n"><b>Tool node</b> (LangGraph ToolNode): checks arguments, takes one unit from the tool budget, calls the MCP server. A bad tool name or argument goes back to the model as an error message, not a crash. Tool results are cut to 6,000 characters.</div>
+  <p class="arrow">&#8595; tool results added to the messages, then back to the model node</p>
+  <div class="step s"><b>Stop conditions</b>: model-call, tool-call or token limit reached (the answer says what stopped it), or the model answers in text</div>
+</div>
+
+<h3>4.3 A document question (RAG search at run time)</h3>
+<div class="flow">
+  <div class="step">Question such as "What risks does Reliance's annual report mention?" routes to <b>documents</b>, so <b>agent_fundamental</b> runs</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step m">Model node (<b>gemma4:12b</b>, role <code>chat</code>) chooses <code>rag_search_documents(query, symbol, doc_type, year, top_k)</code></div>
+  <p class="arrow">&#8595; MCP call into the fundamentals server process</p>
+  <div class="step n"><code>Documents.search()</code> checks the symbol, the document type and top_k (maximum 10)</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step m"><code>gateway.embed(role="embedding")</code> turns the query into a 768-number vector with <b>nomic-embed-text</b> through Ollama</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step n"><b>Chroma</b> similarity search in the complete collection <code>ollama_local-nomic-embed-text-page-c1000-o150</code>, filtered by symbol, type and year</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step n"><b>Score cutoff 0.65</b>: matches below it are treated as "not found". Each kept passage is cut to 900 characters and carries file name and page.</div>
+  <p class="arrow">&#8595; passages returned to the model node</p>
+  <div class="step m"><b>gemma4:12b</b> writes the answer in its own words, cites file and page, and takes no numbers from the passages. Numbers come from <code>fsa_*</code> tools.</div>
+</div>
+
+<h3>4.4 Building the document index (offline, one-off)</h3>
+<div class="flow">
+  <div class="step n"><code>bin/rag_build_bg.sh</code> starts <code>rag_build.py</code> in the background. Log in <code>runtime/logs/rag_build.log</code>.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step n">Pick files per stock: all transcripts, latest 3 annual reports, latest 5 presentations (options change this). Skip files already marked done.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step n"><code>rag_chunker.py</code> (PyMuPDF): one chunk never crosses a page. Size 1,000 characters, overlap 150. Pages with no text are counted.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step m"><code>gateway.embed(role="embedding")</code> with <b>nomic-embed-text</b> in batches</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step n">Write chunks to Chroma (one collection per embedding model and chunk setting). Record each file in <code>rag_ingest.sqlite</code>.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step n">When all 50 stocks are processed with no failed file, mark the collection <b>complete</b>. Only then does search use it.</div>
+</div>
+
+<h3>4.5 Switching provider (no code change)</h3>
+<div class="flow">
+  <div class="step">Admin view, Models panel: choose provider, model and parameters for a role. A separate "Test connection" button makes one small call to check the role. The change is saved to <code>settings.sqlite</code> with an audit row.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step n">Next gateway call reads the new setting. Agents and RAG code are unchanged. The key comes from an environment variable and is never stored or logged.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step s">If the <b>embedding</b> role changes, old vectors no longer match. A new collection must be built and finished before search switches to it. The old one is kept.</div>
+</div>
+
+<h3>4.6 Which model runs at each step</h3>
+<table>
+<tr><th>Step</th><th>Model</th><th>Role</th></tr>
+<tr><td>Routing</td><td>None (keyword rules)</td><td>none</td></tr>
+<tr><td>Research analyst: splitting the question, and writing the merged answer</td><td><b>gemma4:12b</b>, thinking off</td><td><code>chat</code></td></tr>
+<tr><td>Choosing tools and writing the answer, both specialist agents</td><td><b>gemma4:12b</b>, thinking off</td><td><code>chat</code></td></tr>
+<tr><td>Price, indicator and <code>fsa_*</code> tools</td><td>None (DuckDB)</td><td>none</td></tr>
+<tr><td><code>rag_search_documents</code>: question to vector</td><td><b>nomic-embed-text</b>, 768 dimensions</td><td><code>embedding</code></td></tr>
+<tr><td>Vector match in Chroma</td><td>None (distance calculation)</td><td>none</td></tr>
+<tr><td>Index build</td><td><b>nomic-embed-text</b></td><td><code>embedding</code></td></tr>
+<tr><td>Not used by any code yet</td><td><code>router</code> and <code>summary</code>: mistral:7b. <code>judge</code>: gemma4:12b.</td><td>configured only</td></tr>
+</table>
+<p class="muted">A single-topic question takes at least two <code>gemma4:12b</code> calls (pick tools, then write). A <code>both</code> question runs the analyst: a split call, two full agent loops and a merge call, about 8 model calls in the example measured. The usage log shows 6 old <code>router</code> rows, all from early probes, none from the app.</p>
+
+<h3>4.7 The research analyst (a <code>both</code> question)</h3>
+<div class="flow">
+  <div class="step">Router returns <code>both</code>: for example "Revenue growth and RSI of ITC", "Compare TCS and INFY", or an open request such as "Is TCS a good stock to buy"</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step m"><b>Split call</b> (<code>chat</code>, gemma4:12b): returns a technical part and a fundamental part as JSON (fenced JSON accepted). The fundamental part is asked to cover growth, margins, ROE, valuation and documents.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="row">
+    <div class="step n"><b>JSON readable</b><br>each specialist gets only its own part</div>
+    <div class="step s"><b>JSON unreadable</b><br>both specialists get the whole question plus an "answer only your half" note</div>
+    <div class="step n"><b>Only one part needed</b><br>that specialist answers and the merge call is skipped</div>
+  </div>
+  <p class="arrow">&#8595; the specialists run one after the other on one shared budget (24 model calls, 40 tool calls, 80,000 tokens)</p>
+  <div class="step m"><b>agent_technical</b> then <b>agent_fundamental</b>, each running the loop in 4.2. A stopped or failed specialist does not stop the other: its half reads "Not available".</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step m"><b>Merge call</b> (<code>chat</code>, gemma4:12b): one answer from the two labelled answers. For a "should I buy" question it says it cannot advise and lists evidence for and against.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="row">
+    <div class="step n"><b>Number check</b><br>a number no specialist gave makes the answer fall back to the two labelled specialist answers, with a note</div>
+    <div class="step n"><b>Citation check</b><br><code>strip_unsupported_citations</code> removes bracketed page citations no specialist gave</div>
+  </div>
+</div>
+<p class="muted">Measured on the Mac with gemma4:12b: "Revenue growth and RSI of ITC" 59 s, "Compare TCS and INFY" 82 s, "Is TCS a good stock to buy" 136 s. Not yet tested live: the unreadable-split fallback and the stopped-specialist path (scripted tests cover both). The full "Is TCS a good stock to buy" answer was not read to the end after the last prompt fixes.</p>
+
+<h3>4.8 Cost of a model call and the daily cap</h3>
+<div class="flow">
+  <div class="step">Any caller asks the gateway for a role (<code>chat</code>, <code>embedding</code>...)</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step n">Gateway reads the role's provider and model. <b>If the provider is external</b> and the daily cap is set and already spent, it raises "daily cost cap reached" and the call is not made. Local calls are never blocked.</div>
+  <p class="arrow">&#8595;</p>
+  <div class="step m">Provider adapter makes the call and returns the answer with tokens in and out</div>
+  <p class="arrow">&#8595;</p>
+  <div class="row">
+    <div class="step n"><b>Local provider, no rate</b><br>cost 0</div>
+    <div class="step n"><b>Rate found</b><br>cost = tokens times the rate, split into in, out and total</div>
+    <div class="step s"><b>External provider, no rate</b><br>cost unknown (<code>cost_known</code> = false), never guessed</div>
+  </div>
+  <p class="arrow">&#8595;</p>
+  <div class="step n">One usage row is written with tokens, cost columns and the parent call id. The request's <code>Budget</code> adds the cost and stops the loop if a per-request cost limit is set.</div>
+</div>
+<p class="muted">Rates and the cap live in <code>settings.sqlite</code> and every change is audited. Part 2 will add the Admin tab (totals by day, role, model and agent, a what-if table, the call tree, and editors for the cap and rates). Part 3 (Langfuse) will be optional and off unless keys are set.</p>
+
+<h2>5. Agents in detail</h2>
+
+<h3>5.1 agent_technical <span class="tag done">built, working</span></h3>
+<table>
+<tr><th>Item</th><th>Detail</th></tr>
+<tr><td>File</td><td><code>agent_technical.py</code>. Class <code>TechnicalAgent</code> holds the whole loop: LangGraph state graph with model node, tool node, remind node and refuse node. Class attributes <code>agent_name</code>, <code>system_prompt</code>, <code>reminder</code>, <code>no_data_answer</code> and the hook <code>_make_tools()</code> let a new agent reuse it.</td></tr>
+<tr><td>Model</td><td>Role <code>chat</code> (gemma4:12b). Tool calling verified live. mistral:7b and phi4-mini fail at tool calling, so they must not be used for this role.</td></tr>
+<tr><td>Tools (10, from the market-data server)</td><td><code>get_latest_quote</code>, <code>get_ohlcv</code>, <code>get_returns</code>, <code>get_52w_high_low</code>, <code>get_delivery_pct</code>, <code>get_indicators</code>, <code>compare_stocks</code>, <code>top_movers</code>, <code>data_status</code>, <code>list_stocks</code></td></tr>
+<tr><td>Indicators computed in code</td><td>SMA, EMA, RSI, MACD, Bollinger bands, ATR</td></tr>
+<tr><td>Prompt rules</td><td>All numbers from tools. Nifty 50 only. <code>top_movers</code> is not the stock list (use <code>list_stocks</code>). State the data date once. Pass on caveats. Describe what indicators show, no promised returns, no buy or sell. Keep answers short.</td></tr>
+<tr><td>Safety behaviours</td><td>No tool call means one reminder, then a fixed "no tool data" reply. Unknown stock returns "not a Nifty 50 stock" from the tool, not a crash. Budget stops runaway loops and the answer says which limit was hit.</td></tr>
+<tr><td>Tests</td><td>11 tests in <code>test_agent_technical.py</code>, using a fake gateway and a fake server, plus live runs on the real model.</td></tr>
+</table>
+
+<h3>5.2 agent_fundamental <span class="tag done">built, working</span></h3>
+<table>
+<tr><th>Item</th><th>Detail</th></tr>
+<tr><td>File</td><td><code>agent_fundamental.py</code>. Subclasses <code>TechnicalAgent</code> and changes only the tools, the prompt and the agent name in the usage log.</td></tr>
+<tr><td>Model</td><td>Role <code>chat</code> (gemma4:12b). The search tool also calls role <code>embedding</code> (nomic-embed-text) inside the MCP server.</td></tr>
+<tr><td>Tools (8, from the fundamentals server)</td><td>
+<code>fsa_list_line_items</code> (what a stock's workbook contains), <code>fsa_get_financials</code> (statement lines by section and period), <code>fsa_get_quarterly</code>, <code>fsa_compute_growth</code> (growth and CAGR), <code>fsa_compute_ratios</code> (margins, ROE, ROA and others), <code>fsa_get_valuation</code> (P/E, price to book, market cap), <code>fsa_coverage</code> (which stocks have which data), and <code>rag_search_documents</code> (annual reports, transcripts, presentations).</td></tr>
+<tr><td>Prompt rules</td><td>Two sources: statements for numbers, documents for meaning. Never quote a number that did not come from a tool. Say the unit is not stated (probably Rs crore). Do not give operating margin, interest cover or debt to equity for banks, finance companies and insurers. Cite file and page for every document point. Take no numbers from passages. Say plainly when a stock has no documents (ITC and TRENT no transcripts, BAJAJ-AUTO no presentations, INFY none).</td></tr>
+<tr><td>Verified in the real UI</td><td>TCS CAGR 8.70%. HDFCBANK P/E 16.55x and ROE 12.97%. Reliance annual-report risks and TCS attrition from documents. ITC reported as having no transcripts.</td></tr>
+<tr><td>Tests</td><td>10 tests in <code>test_agent_fundamental.py</code>, 15 in <code>test_fundamentals.py</code>, 10 in <code>test_documents.py</code>.</td></tr>
+</table>
+
+<h3>5.3 agent_research_analyst <span class="tag done">built, working</span></h3>
+<table>
+<tr><th>Item</th><th>Detail</th></tr>
+<tr><td>File</td><td><code>agent_research_analyst.py</code>. Class <code>ResearchAnalyst(gateway, technical, fundamental, parallel=False, news=None)</code>. It has no tools of its own. The earlier one-line stub is kept as <code>agent_research_analyst.v1.py</code>.</td></tr>
+<tr><td>When it runs</td><td>For the <code>both</code> route only. <code>ui_app.answer()</code> calls it and adds its note, if any, under the answer.</td></tr>
+<tr><td>Model</td><td>Role <code>chat</code> (gemma4:12b) for the split and the merge. The specialists make the tool-calling calls.</td></tr>
+<tr><td>Budget</td><td>One shared budget: 24 model calls, 40 tool calls, 80,000 tokens.</td></tr>
+<tr><td>Quality fixes made after the user's TCS screenshots</td><td>(1) Invented citations such as "(Technical Analyst, p. 1)" are removed. The number check ignores small whole numbers, so citations needed their own check. (2) The answer ignored the buy question: the merge prompt now says it cannot advise and gives evidence for and against. (3) The fundamental half was thin: the split prompt now asks for growth, margins, ROE, valuation and documents.</td></tr>
+<tr><td>Tests</td><td>29 tests in <code>test_agent_research_analyst.py</code> (scripted gateway): split parsing, fallbacks, shared budget, number check, citation check, one failed specialist.</td></tr>
+<tr><td>Not built</td><td>Nothing outstanding for the analyst itself. It now also calls the news agent (3.7) and has an optional parallel mode.</td></tr>
+</table>
+
+<h3>5.4 agent_portfolio_manager <span class="tag done">built 23 Nov</span></h3>
+<p>Files: <code>agent_portfolio_manager.py</code>, <code>mcp_portfolio.py</code> (4 tools: <code>portfolio_scorecard</code>, <code>portfolio_suggest</code>, <code>portfolio_build</code>, <code>portfolio_evaluate</code>), <code>scorecard.py</code> (momentum, quality, valuation, risk; seven strategies), <code>portfolio.py</code> (one stock per industry group, equal or inverse-volatility weights held to 5% to 40%, buy-and-hold replay of the past) and <code>guardrails.py</code> (G1 to G7 in plain code). The route is <code>portfolio</code>. The scorecard ranks stocks against each other; it is not a forecast.</p>
+<p class="box"><b>Checked live on 23 Nov (<code>gemma4:12b</code>):</b> "Make a 5-stock low-risk portfolio" 37 s, one <code>portfolio_build</code> call; "2 portfolio ideas for long term and short term" 45 s, two calls with different strategies; "Add Tesla and Infosys to my portfolio of TCS and ITC" was blocked by G1. The model once changed the replay window to 365 and then 30 days; the prompt now says to leave <code>days</code> at 252. <b>Not re-checked after that prompt change.</b> Not built: saving portfolios, rebalancing, correlation, the multi-portfolio compare design.</p>
+
+<h3 id="agent-news">5.5 agent_news <span class="tag done">built 26 Nov</span></h3>
+<p>See 3.7. Own class <code>NewsAgent</code> (not a <code>TechnicalAgent</code>), tools in <code>mcp_news.py</code>, data code in <code>news_tools.py</code>. Prompt rules: use tools for every headline and count; headlines only; source and date with each item; "no headline found" instead of "nothing happened"; no price prediction, no buy or sell; copy <code>fetched_at</code> exactly; one tool for a plain news question. Tests: <code>test_news_tools</code> (79), <code>test_agent_news</code> (21), <code>test_news_integration</code> (34), <code>test_parallel_analyst</code> (13).</p>
+
+<h2>6. Router</h2>
+<table>
+<tr><th>Route</th><th>Rule (file <code>router.py</code>, whole-word match, lower case)</th><th>Runs</th></tr>
+<tr><td>documents</td><td>Annual report, transcript, earnings call(s), concall(s), con call(s), analyst call(s), presentation, risk factors, MD&amp;A, "management said / says / comment(s) / think", "what did management", and topic words that live in calls and reports: capex, capital expenditure, guidance, order book, attrition</td><td>agent_fundamental</td></tr>
+<tr><td>fundamental</td><td>Financial statements, revenue, profit, margin, ROE, ROA, ROCE, debt, P/E, price to book, market cap, valuation, dividend, CAGR, quarterly results, balance sheet and similar. <b>Screener words</b> (PE, OPM, NPM, GPM, PEG, promoter, FII, DII, EPS, EV, debt to equity, "screener") also count, and next to one of them RSI and MACD stay here</td><td>agent_fundamental</td></tr>
+<tr><td>technical</td><td>RSI, MACD, SMA, EMA, Bollinger, ATR, trend, momentum, price, volume, delivery, 52-week, returns, movers, volatility and similar. Also the default when no keyword matches.</td><td>agent_technical</td></tr>
+<tr><td>portfolio</td><td>Portfolio, rebalance, asset allocation, basket of stocks and similar. A documents word still wins.</td><td>agent_portfolio_manager</td></tr>
+<tr><td>news</td><td>News, headline(s), sentiment, announcement(s), latest on, what is happening, in the news, buzz, rumour(s). A news word with a price or statement word goes to <code>both</code>; a documents or portfolio word wins.</td><td>agent_news</td></tr>
+<tr><td>both</td><td>A fundamental and a technical keyword together; or an open request with neither kind of word (research, analyse, full analysis, tell me about, how is, should I invest, undervalued, cheap, pros and cons, what do you think, summary of...); or "compare / versus / vs / which is better" with neither kind of word</td><td>research analyst (technical, then fundamental, then news when asked, then merge)</td></tr>
+</table>
+<p class="muted">Phrases such as "price to earnings" and "return on equity" contain technical words but are removed before the technical check. 74 route cases are tested. The old limit (each agent got the whole mixed question) is gone: the research analyst now splits it with one <code>chat</code> call. Side effect of the open-request rule: "tell me about" routes to <code>both</code>. Known gaps: no route for compare or out-of-scope questions.</p>
+
+<h2>7. MCP servers and tools</h2>
+<table>
+<tr><th>Server</th><th>File</th><th>Tools</th><th>Reads</th><th>State</th></tr>
+<tr><td>market-data</td><td><code>mcp_market_data.py</code></td><td>10 tools listed in 5.1</td><td><code>arpm.duckdb</code> read-only</td><td><span class="tag done">built</span></td></tr>
+<tr><td>fundamentals</td><td><code>mcp_fundamentals.py</code></td><td>7 <code>fsa_*</code> tools, 3 <code>screener_*</code> tools (Screener snapshot CSVs in <code>screener.duckdb</code>), and <code>rag_search_documents</code></td><td><code>fundamentals.duckdb</code>, <code>screener.duckdb</code>, Chroma</td><td><span class="tag done">built</span></td></tr>
+<tr><td>portfolio</td><td><code>mcp_portfolio.py</code></td><td>4 tools: <code>portfolio_scorecard</code>, <code>portfolio_suggest</code>, <code>portfolio_build</code>, <code>portfolio_evaluate</code> (section 5.4)</td><td><code>arpm.duckdb</code> and <code>screener.duckdb</code>, read-only. <code>portfolios.sqlite</code> is not created yet.</td><td><span class="tag done">built</span></td></tr>
+<tr><td>news</td><td><code>mcp_news.py</code></td><td>3 tools: <code>news_search</code>, <code>news_sentiment</code>, <code>news_market</code> (section 3.7)</td><td>10 RSS feeds over HTTP, 15-minute cache; the sentiment tool calls the gateway</td><td><span class="tag done">built</span></td></tr>
+</table>
+<ul>
+<li>Built with the MCP SDK v2 (<code>MCPServer</code> and <code>@mcp.tool()</code>). Each server runs as a subprocess over stdio. <code>mcp_client.py</code> starts it once and keeps it open.</li>
+<li>Every tool catches its errors and returns text, so the model sees "not a Nifty 50 stock" instead of a crash.</li>
+<li>Bug fixed: the server subprocess did not inherit <code>OLLAMA_HOST</code>, so every document search failed. <code>mcp_client.py</code> now passes the full environment, and a test covers it.</li>
+<li>Tool prefixes: financial statement tools start with <code>fsa_</code>, the document search tool starts with <code>rag_</code>.</li>
+</ul>
+
+<h2>8. Document search (RAG) in detail</h2>
+<table>
+<tr><th>Item</th><th>Value</th></tr>
+<tr><td>Embedding model</td><td><b>nomic-embed-text</b>, 768 dimensions, through role <code>embedding</code></td></tr>
+<tr><td>Chunking</td><td>Split by page, 1,000 characters, 150 overlap. A chunk never crosses a page, so every chunk has one page number. "Split by section" is allowed in settings but not built, and asking for it is an error.</td></tr>
+<tr><td>Index</td><td>Collection <code>ollama_local-nomic-embed-text-page-c1000-o150</code>: 1,477 files, 528,991 chunks, 50 stocks, 0 failed files, complete</td></tr>
+<tr><td>Build time</td><td>4 h 01 m, about 36 chunks per second on this Mac (measured). The earlier plan estimated about 60 per second.</td></tr>
+<tr><td>Disk</td><td>6.1 GB in <code>project-db/chroma</code></td></tr>
+<tr><td>Search filters</td><td>symbol, document type (transcript, annual report, presentation), year, top_k up to 10</td></tr>
+<tr><td>Score cutoff</td><td>0.65 cosine similarity. Measured on about 8 questions: real questions 0.67 to 0.74, off-topic 0.40 to 0.54, "weather in Mumbai" 0.63 (Mumbai appears in the documents). It is a small sample, so recheck on more questions.</td></tr>
+<tr><td>Result shape</td><td>Passage text (cut to 900 characters), symbol, document type, period, file, page, score</td></tr>
+<tr><td>Failure behaviour</td><td>Incomplete or missing index, or an embedding error, returns "document search is unavailable" to the agent instead of a crash</td></tr>
+<tr><td>Rebuild options</td><td><code>--estimate-only</code>, <code>--trial --symbols TCS</code>, <code>--annual-reports 5</code>, <code>--size</code>, <code>--overlap</code>. A stopped run continues where it stopped. Each setting gets its own collection and the old one is kept.</td></tr>
+</table>
+
+<h2>9. AI gateway, settings and budget</h2>
+<table>
+<tr><th>Part</th><th>Detail</th></tr>
+<tr><td>Roles and defaults (live settings)</td><td><code>chat</code> gemma4:12b (think off). <code>embedding</code> nomic-embed-text. <code>router</code> mistral:7b (temperature 0). <code>summary</code> mistral:7b. <code>judge</code> gemma4:12b (think off, temperature 0). All on provider <code>ollama_local</code>.</td></tr>
+<tr><td>Providers</td><td><code>ollama_local</code> (on), <code>huggingface</code> (off), <code>external_api</code> (off, OpenAI-compatible, needs base URL and key variable)</td></tr>
+<tr><td>Usage log</td><td><code>usage.sqlite</code>, table <code>calls</code>: time, parent id, session, agent, node, route, role, kind, provider, model, tokens in and out, <b>cost in, cost out, cost total, cost known</b>, duration, preview (80 characters), error. 17,533 rows on 21 Nov (measured): 204 chat, 17,323 embedding, 6 router. Rows written before the cost columns existed are kept and counted as unpriced.</td></tr>
+<tr><td>Settings store</td><td><code>settings.sqlite</code>: <code>roles</code>, <code>providers</code>, <code>kv</code>, <code>rates</code>, <code>audit</code> (who, when, old and new value). API keys are never stored. Only the environment variable name is.</td></tr>
+<tr><td>Tokenomics (Part 1, built)</td><td><code>rates</code> table per provider and model (<code>get_rate</code>, <code>set_rate</code>, <code>list_rates</code>, every change audited). Local provider with no rate: cost 0. External provider with no rate: unknown, never guessed. <b>No rate has been entered yet.</b> Setting <code>cost_cap</code> (<code>{"daily": None}</code>): once the day's spend reaches it, paid calls raise "daily cost cap reached" and local calls still run. Gateway methods: <code>summary(by)</code> (day, role, model, agent or provider), <code>spend_today()</code>, <code>cost_cap_state()</code>, <code>recent_sessions()</code>, <code>session_calls()</code>. <code>tokenomics.py</code>: <code>what_if(tokens_in, tokens_out, rates)</code> and <code>call_tree(rows)</code> (handles missing parents and cycles). 26 tests in <code>test_tokenomics.py</code>.</td></tr>
+<tr><td>Langfuse (Part 3, not built)</td><td>Decision: optional add-on, off unless keys are set in <code>config/arpm.env</code>. Traced inside <code>gateway.py</code> only, with a privacy switch (previews only, or nothing) and a fail-safe so chat works if Langfuse is down. Self-hosted Langfuse needs web, worker, Postgres, ClickHouse, Redis and S3-style storage, with no plain-process install, so the options are Langfuse Cloud or a Compose box on another machine. The SDK was not checked yet.</td></tr>
+<tr><td>Budget (guardrail G8)</td><td>One <code>Budget</code> per request, shared by every agent in the chain: 12 model calls, 20 tool calls, 40,000 tokens, agent depth 3 (the analyst's shared budget is 24, 40 and 80,000). A per-request cost limit exists and is off by default. When a limit is hit the agent stops and the answer says why.</td></tr>
+<tr><td>Rules tested</td><td>Roles switch provider with no code change. Keys never reach logs. Only <code>providers.py</code> talks to a model service.</td></tr>
+</table>
+
+<h2>10. Web app</h2>
+<table>
+<tr><th>Part</th><th>Detail</th></tr>
+<tr><td>Entry</td><td><code>app_ui.py</code> starts <code>ui_app.py</code>. Start and stop with <code>bin/start_app.sh</code> and <code>bin/stop_app.sh</code>. <b>Restart after every code or settings change</b>: Streamlit caches the settings store, gateway and agents. After <code>get_rate</code> was added, the running app kept the old object and every chat failed with an attribute error until restarted.</td></tr>
+<tr><td>Sidebar</td><td>Brand, <b>New chat</b>, search box (matches titles and message text), <b>Recents</b> grouped Today, Yesterday, Previous 7 days, Older, and the <b>Admin</b> button. There is no delete button, on purpose.</td></tr>
+<tr><td>Empty chat</td><td>"What can I help you with?", the scope line, 4 example buttons, the research-tool disclaimer</td></tr>
+<tr><td>Conversation</td><td>Title bar, message bubbles (user on the right), "Tools used" expander per answer (tool, arguments, result), input pill</td></tr>
+<tr><td>Storage</td><td><code>chat_store.py</code>, <code>chats.sqlite</code>. First question becomes the title. Empty conversations are not listed. Search treats <code>%</code> and <code>_</code> as plain characters. Titles are HTML-escaped.</td></tr>
+<tr><td>Admin view (password)</td><td>Opens from the sidebar. Locked until <code>ARPM_ADMIN_PASSWORD</code> is set (still empty today). Panels: <b>Models</b> (provider, model and parameters per role), <b>Providers</b> (base URL, key variable, enable with a warning), <b>Chunking and RAG</b> (chunk settings, index status), <b>Usage log</b> (last 200 calls), <b>Change log</b> (settings audit), <b>Guardrails</b> (section 12), and <b>Agents</b> (one checkbox: parallel mode, 3.7). The <code>sentiment</code> role is a new row in Models. <b>Tokenomics tab (Part 2) is not built yet.</b> The Agents tab and the sentiment row were not opened in a browser.</td></tr>
+<tr><td>Look</td><td>Light theme in the style of ChatGPT: sidebar grey, 820 px centred column, pill input. Checked by screenshot (welcome screen and conversation bottom). The top of a conversation was captured on 20 Nov (<code>runtime/screens/conversation_top.png</code>): title, user bubble, answer with Technical and Fundamental headings, search box and Recents all render. <b>The Admin view is not yet checked visually.</b> Screenshots come from <code>ui_shot.py</code>, which drives headless Chrome (the plain <code>--screenshot</code> flag captures only Streamlit's loading skeleton).</td></tr>
+<tr><td>Tests</td><td>32 tests in <code>test_ui_app.py</code> (layout, routing, HTML injection, refresh persistence, admin lock) and 10 in <code>test_chat_store.py</code></td></tr>
+</table>
+
+<h2>11. Code, tests and operations</h2>
+
+<h3>11.1 Files in <code>project-code/</code> (flat <code>.py</code> files)</h3>
+<table>
+<tr><th>Group</th><th>Files</th><th>Lines (approx.)</th></tr>
+<tr><td>Core</td><td><code>config.py</code>, <code>providers.py</code>, <code>model_settings.py</code>, <code>gateway.py</code>, <code>budget.py</code>, <code>mcp_client.py</code>, <code>tokenomics.py</code></td><td>1,166</td></tr>
+<tr><td>Agents</td><td><code>agent_technical.py</code>, <code>agent_fundamental.py</code>, <code>agent_research_analyst.py</code>, <code>agent_portfolio_manager.py</code> (88), <code>agent_news.py</code> (186)</td><td>not re-counted; 594 on 21 Nov for the first three plus a stub</td></tr>
+<tr><td>MCP servers</td><td><code>mcp_market_data.py</code>, <code>mcp_fundamentals.py</code>, <code>mcp_portfolio.py</code> (75), <code>mcp_news.py</code> (54)</td><td>not re-counted; 193 on 21 Nov for the first two</td></tr>
+<tr><td>Portfolio and news logic</td><td><code>scorecard.py</code> (180), <code>portfolio.py</code> (207), <code>guardrails.py</code> (87), <code>news_tools.py</code> (348)</td><td>822 (measured 26 Nov)</td></tr>
+<tr><td>Data layers</td><td><code>prices_db.py</code>, <code>indicators.py</code>, <code>market_data.py</code>, <code>fundamentals_db.py</code>, <code>fundamentals.py</code></td><td>785</td></tr>
+<tr><td>RAG</td><td><code>rag_chunker.py</code>, <code>rag_store.py</code>, <code>rag_build.py</code>, <code>documents.py</code></td><td>568</td></tr>
+<tr><td>Router and UI</td><td><code>router.py</code>, <code>ui_app.py</code>, <code>app_ui.py</code>, <code>chat_store.py</code></td><td>581</td></tr>
+<tr><td>Helper scripts, not imported by the app</td><td><code>ui_shot.py</code> (Chrome screenshots), <code>live_chat.py</code>, <code>live_fundamental.py</code>, <code>live_models.py</code>, <code>rag_check*.py</code>, <code>ui_smoke.py</code>, <code>_probe*.py</code></td><td>233</td></tr>
+</table>
+<p class="muted">The group totals above are from 21 Nov unless marked; the grand total was not re-measured after the portfolio, screener and news work (3,900 lines on 21 Nov; 4,120 including the helper scripts). Old whole-file versions are kept as <code>*.v1.py</code> and similar, and <code>pytest.ini</code> ignores them.</p>
+
+<h3>11.2 Tests: 626 passing in 29 files, last full run 26 Nov 2026 (about 21 s)</h3>
+<table>
+<tr><th>Area</th><th>Test files</th></tr>
+<tr><td>Rules</td><td><code>test_architecture_rules</code> (no hard-coded paths, only <code>providers.py</code> calls models), <code>test_config</code></td></tr>
+<tr><td>Gateway</td><td><code>test_gateway</code> (12), <code>test_tokenomics</code> (26)</td></tr>
+<tr><td>Prices</td><td><code>test_prices_db</code> (13), <code>test_indicators</code> (10), <code>test_market_data</code> (12)</td></tr>
+<tr><td>Statements</td><td><code>test_fundamentals_db</code>, <code>test_fundamentals</code></td></tr>
+<tr><td>RAG</td><td><code>test_rag_chunker</code>, <code>test_rag_store</code>, <code>test_rag_build</code>, <code>test_documents</code></td></tr>
+<tr><td>Agents and MCP</td><td><code>test_agent_technical</code> (11), <code>test_agent_fundamental</code> (13), <code>test_agent_research_analyst</code> (29), <code>test_agent_portfolio_manager</code> (18), <code>test_agent_news</code> (21), <code>test_parallel_analyst</code> (13), <code>test_mcp_client</code> (1)</td></tr>
+<tr><td>Guardrails</td><td><code>test_guardrail_rules</code> (68), <code>test_guardrail_wiring</code> (35)</td></tr>
+<tr><td>Portfolio, screener, news</td><td><code>test_portfolio</code> (21), <code>test_screener</code> (19), <code>test_news_tools</code> (79), <code>test_news_integration</code> (34)</td></tr>
+<tr><td>Router and UI</td><td><code>test_router</code> (74), <code>test_ui_app</code> (32), <code>test_chat_store</code> (10)</td></tr>
+</table>
+
+<h3>11.3 Operations</h3>
+<table>
+<tr><th>Item</th><th>Detail</th></tr>
+<tr><td>No Docker</td><td>Plain processes started by <code>bin/*.sh</code>: <code>start_all</code>, <code>stop_all</code>, <code>start_app</code>, <code>stop_app</code>, <code>start_ollama</code>, <code>stop_ollama</code>, <code>status</code>, <code>run_py</code>, <code>rag_build</code>, <code>rag_build_bg</code>, <code>rag_build_stop</code></td></tr>
+<tr><td>Config</td><td><code>config/paths.json</code> (all paths), <code>config/arpm.env</code> (environment, mode 600), <code>config/setup.sh</code></td></tr>
+<tr><td>Python</td><td>3.12 in <code>project-code/.venv</code>: duckdb, pandas, numpy, mcp, ollama, langgraph, langchain-core, pydantic, plotly, streamlit, chromadb, openpyxl, pymupdf, pytest</td></tr>
+<tr><td>Runtime</td><td><code>runtime/run</code> (PID files), <code>runtime/logs</code>, <code>runtime/screens</code></td></tr>
+<tr><td>Speeds on this Mac with gemma4:12b (measured)</td><td>First call after a restart 40 to 68 s (model load). Single-topic answer 8 to 37 s. Compare and research answers 59 to 136 s.</td></tr>
+</table>
+
+<h2>12. Guardrails: status</h2>
+<p><b>Admin &rarr; Guardrails tab (built 26 Nov, <code>guardrail_rules.py</code>).</b> It lists every guardrail with its <b>timing</b> (input: before an agent runs; prompt: in the agent's instructions; tool: inside a tool; output: on the finished answer), its <b>strength</b> (hard: plain code the model cannot talk past; soft: a request the model can ignore), its state (built or planned) and whether it is locked. <b>Built-in rows are read-only: this version has no on/off switch for any of them</b> (G1, G7 and G8 are marked locked for when switches exist). You can add and remove <b>custom rules</b>, and turn each one on or off with a checkbox:</p>
+<ul>
+<li><b>Keyword rule:</b> words or phrases looked for in the question, before routing. Action <code>block</code> (no agent or model is called; the user sees the rule text) or <code>warn</code> (the answer goes through with a note). Whole-word, case-insensitive match. Hard, but it only catches the words you type.</li>
+<li><b>Prompt rule:</b> one sentence added to the technical, fundamental, news, portfolio and analyst-merge prompts. <b>Soft</b>: the model can ignore it. Not applied to the analyst's split call.</li>
+<li>At most 30 custom rules. Ids <code>C1</code>, <code>C2</code>... are never reused. Removing a rule is allowed for custom rules only; every change is in the Change log. A change applies to the next question with no restart.</li>
+<li><b>Event log</b> (table <code>guardrail_events</code> in the settings database; this is item P6): one row each time a keyword rule fires, with a 120-character summary of the question. The tab shows how many times each rule fired and the last 50 events. It logs <b>custom rules only</b>: the built-in portfolio rules do not write events yet.</li>
+</ul>
+<p><b>Input guard (built 26 Nov, <code>input_guard.py</code>, rows G1 to G3 and P1).</b> Every question is checked in plain code <b>before routing and before any agent is built</b>. The chat's "Tools used" list always starts with <code>[guardrail] input_check({"checks": [...], "result": "passed"})</code> (or <code>blocked</code>, or <code>skipped: stock lists not found</code>). When it blocks, the answer is only the <code>GUARDRAIL ALERT:</code> lines, route <code>guardrail</code>, no agent or model call, and one event per rule in the log.</p>
+<ul>
+<li><b>G1:</b> a stock outside the Nifty 50 is named. Uses <code>nifty-50.csv</code>, <code>equitydata-all-stocks.csv</code> (new <code>paths.json</code> entry <code>all_stocks_list</code>) and a short hand-made list (Tesla, Microsoft, Adani Gas, Britannia and others). Nifty names, aliases and codes are removed from the text first, so "Tata Motors" (TMPV here) passes.</li>
+<li><b>G2 / G3:</b> only when the router says <code>portfolio</code>. A count outside 4 to 6 blocks the question (a different count would answer a different question than the one asked). Reads "10", "ten", "3-stock", "20 shares". "2 portfolio ideas" and "Nifty 50 stocks" are not counts. Two different counts in one question are not guessed.</li>
+<li><b>Router:</b> a misspelt "portfolio" (postfolio, portfolo, portflio) now routes to <code>portfolio</code>.</li>
+<li><b>Refuses only on a confident match.</b> A stock code counts only in capitals and at 4 or more characters. Single-word names that are everyday words (premier, falcon, symphony and others) are skipped. <b>Not caught:</b> a misspelt name, a 3-letter code, a company the list writes in short form ("Adani Enterp.") unless added by hand. Wipro is not in this app's Nifty 50 list, so G1 blocks it.</li>
+<li>The tools still refuse the same cases as a second check, so the earlier alert path stays.</li>
+</ul>
+<p class="box"><b>Not checked.</b> The tab was tested with Streamlit's test harness and printed back (tables, checkboxes, buttons all present) but <b>not opened in a browser</b>, so how it looks is unknown. The 16 planned rows (P2 to P5, P7 to P18) are the review of 26 Nov; none is built. P1 and P6 are built. A keyword rule does not understand meaning: "target price" is not caught by a rule for "price target" unless both are listed.</p>
+<table>
+<tr><th>Rule</th><th>Trigger</th><th>Action</th><th>Status</th></tr>
+<tr><td>G1</td><td>Stock not in the Nifty 50</td><td>Block</td><td><span class="tag done">built, tested</span> on the question text in <code>input_guard.py</code>, before routing. Every tool and the portfolio check also refuse it as a second check.</td></tr>
+<tr><td>G2</td><td>7 or more stocks in a portfolio</td><td>Block</td><td><span class="tag done">built, tested</span> on the question text and again in the portfolio tool</td></tr>
+<tr><td>G3</td><td>Fewer than 4 stocks (assumed)</td><td>Block</td><td><span class="tag done">built, tested</span> on the question text and again in the portfolio tool</td></tr>
+<tr><td>G4</td><td>Weights not summing to 100%, or outside 5% to 40% (assumed)</td><td>Block</td><td><span class="tag done">built, tested</span></td></tr>
+<tr><td>G5</td><td>Over 50% in one industry group</td><td>Warn</td><td><span class="tag done">built, tested</span></td></tr>
+<tr><td>G6</td><td>Under 1 year (252 trading days) of price history</td><td>Warn</td><td><span class="tag done">built, tested</span>. TMPV has 260 days, so it is not warned.</td></tr>
+<tr><td>G7</td><td>Every portfolio answer</td><td>Add "not investment advice", data date, unadjusted-price note</td><td><span class="tag done">built</span> The portfolio tools add the footer, so the model cannot leave it out.</td></tr>
+<tr><td>G8</td><td>Model calls over 12, tool calls over 20, tokens over 40,000, depth over 3, or a cost limit if one is set</td><td>Stop</td><td><span class="tag done">built, tested</span> in <code>budget.py</code></td></tr>
+</table>
+
+<h2>13. What is left to do</h2>
+<table>
+<tr><th>#</th><th>Item</th><th>Why</th></tr>
+<tr><td>1</td><td><b>Tokenomics Part 2:</b> Admin "Tokenomics" tab (totals by day, role, model and agent, speed, what-if table, call tree, cap and rates editors). Write the UI tests first, using a small fake gateway.</td><td>Part 1 is built and has no screen yet.</td></tr>
+<tr><td>2</td><td><b>Tokenomics Part 3:</b> optional Langfuse tracing inside the gateway, off by default, with a privacy switch. Check the current SDK documentation first.</td><td>The user asked for it. The SDK was not verified.</td></tr>
+<tr><td>3</td><td>Read the full "Is TCS a good stock to buy" answer (Evidence Against and citations were cut off in the last check). Live-test the unreadable-split and stopped-specialist paths.</td><td>Only scripted tests cover them.</td></tr>
+<tr><td>4</td><td><b>News agent, remaining:</b> check the Admin Models tab (<code>sentiment</code> role) and the new Agents tab in a browser; build a labelled headline set to measure sentiment accuracy; log the analyst's split output; review each site's terms of use.</td><td>Built and live-tested on 26 Nov, but these were not checked.</td></tr>
+<tr><td>4b</td><td>Live re-check of the portfolio manager: <code>days</code> stays 252; "2 portfolio ideas" does not repeat stocks. Add a <code>[router]</code> invoke line for the single-agent routes.</td><td>The prompt was changed after the 23 Nov live run and not re-checked.</td></tr>
+<tr><td>5</td><td><code>out_of_scope</code> route for non-stock topics and non-Nifty stocks.</td><td>"Weather in Mumbai" scores 0.63 against a 0.65 cutoff.</td></tr>
+<tr><td>6</td><td>Change the <code>rag_search_documents</code> tool description so the model writes a full descriptive query.</td><td>The one word "attrition" returned nothing; "employee attrition rate and hiring" scored 0.74.</td></tr>
+<tr><td>7</td><td>Check the Admin view by screenshot.</td><td>The only screen not yet verified visually.</td></tr>
+<tr><td>8</td><td>The slim <code>prompt_enhancer.py</code>. (<code>guardrails.py</code> is built.)</td><td>Planned workflow node, not built.</td></tr>
+<tr><td>9</td><td><code>agent_compare</code> and a sector grouping for it.</td><td>Needs a decision on the grouping.</td></tr>
+<tr><td>10</td><td>Admin additions: document search box, index build runs, fundamentals build info.</td><td>Planned in the Admin spec. (The call tree moves into item 1.)</td></tr>
+<tr><td>11</td><td>Command-line chat. A listing test for <code>mcp_fundamentals.py</code>. Price jump detector for corporate actions. Check the 4 capex rows from the conference-call question against their transcripts.</td><td>Smaller items.</td></tr>
+<tr><td>12</td><td>Two more TCS annual reports: <code>bin/rag_build_bg.sh --symbols TCS --annual-reports 5</code>. Tune the 0.65 cutoff on more questions.</td><td>TCS has fewer annual reports indexed than the others. The cutoff was set on about 8 questions.</td></tr>
+<tr><td>13</td><td>Real test of Hugging Face and the UpGrad API (needs the API documentation).</td><td>Only mocked-HTTP tests exist.</td></tr>
+</table>
+<p class="muted">Done since the previous version of this page: research analyst (was item 2 and part of 3), router additions, tokenomics Part 1, the top-of-conversation screenshot check.</p>
+
+<h2>14. Open decisions and risks</h2>
+<table>
+<tr><th>Item</th><th>Why it matters</th><th>Current default</th></tr>
+<tr><td><span class="tag risk">question</span> Admin password</td><td>Admin view is locked until set</td><td><code>ARPM_ADMIN_PASSWORD</code> is empty in <code>config/arpm.env</code></td></tr>
+<tr><td><span class="tag risk">question</span> Portfolio: plain reply first, or full build</td><td>Today's portfolio answers are misleading</td><td>Plain reply first, then build</td></tr>
+<tr><td><span class="tag risk">question</span> UpGrad API format</td><td>The project may need embeddings and retrieval on their API</td><td>Generic OpenAI-compatible adapter. If it differs, only one class in <code>providers.py</code> changes.</td></tr>
+<tr><td>Add gemma4:12b to <code>config/setup.sh</code></td><td>A fresh machine would not pull it</td><td>Not added yet</td></tr>
+<tr><td>Keep the old DuckDB under a dated name on rebuild of the price database</td><td>Matches the no-delete rule</td><td>Not decided</td></tr>
+<tr><td><span class="tag risk">risk</span> Local model speed</td><td>Compare and research answers take 59 to 136 s on the M1 Pro. CPU-only EC2 is expected to be slower. This is not measured.</td><td>Keep the switch dynamic. Test on the real instance.</td></tr>
+<tr><td><span class="tag risk">risk</span> Tool calling depends on the model</td><td>Only gemma4:12b and gemma4:e4b called tools correctly in tests</td><td>Keep <code>chat</code> on a gemma4 model</td></tr>
+<tr><td><span class="tag risk">risk</span> Score cutoff sample is small</td><td>About 8 questions measured</td><td>Recheck with more questions</td></tr>
+<tr><td><span class="tag risk">risk</span> External providers</td><td>Questions and document text leave the machine</td><td>Off by default, warning shown when enabled</td></tr>
+<tr><td><span class="tag risk">risk</span> Embedding provider change</td><td>Vectors from different models cannot be mixed</td><td>One collection per model and chunk setting. Old one is kept.</td></tr>
+<tr><td><span class="tag risk">risk</span> Unadjusted prices, no benchmark, survivorship bias</td><td>Long-range numbers can mislead</td><td>State the limits in answers</td></tr>
+<tr><td><span class="tag done">decided</span> Langfuse</td><td>Self-hosting needs several containers and the project runs no Docker. The user pointed out that, unlike LangSmith, Langfuse can run locally.</td><td>Own usage log and Admin view are the base. Langfuse is an optional add-on, off unless keys are set (Cloud or a Compose box elsewhere).</td></tr>
+<tr><td><span class="tag done">decided</span> Docker</td><td>User rule</td><td>Plain processes started by <code>bin/*.sh</code></td></tr>
+<tr><td><span class="tag risk">question</span> Rates for paid providers</td><td>Without a rate, external calls show as unpriced and the daily cap cannot count them</td><td>Left empty. No price is invented. The user enters rates in the Admin tab once Part 2 exists.</td></tr>
+<tr><td><span class="tag risk">risk</span> Analyst answers are slow</td><td>Research answers took 59 to 136 s on the Mac, because they make about 8 model calls</td><td>Show progress. Test on the real EC2 instance.</td></tr>
+<tr><td><span class="tag risk">risk</span> Stale running app</td><td>A running app keeps old objects after a code change</td><td>Restart with <code>bin/stop_app.sh &amp;&amp; bin/start_app.sh</code> after every change</td></tr>
+</table>
+
+<h2>15. Hosting on EC2 (CPU only)</h2>
+<p>The project folder layout has the data folder as a sub-folder (<code>screener-document-download/</code>). <code>config/paths.json</code> already points to it and all paths resolve (checked 20 Nov).</p>
+<table>
+<tr><th>Resource</th><th>Need</th><th>Basis</th></tr>
+<tr><td>Memory</td><td>About 14 to 16 GB with gemma4:12b. About 4 to 6 GB if the <code>chat</code> role uses an external API.</td><td>Model about 9 to 10 GB, Chroma about 2 to 3 GB (estimate from 529k vectors), app and system about 2 GB. The app itself uses about 75 MB (measured).</td></tr>
+<tr><td>CPU</td><td>8 vCPU for a usable pace. 4 vCPU works but is slow. Beyond 8, gains are small.</td><td>Token generation is limited by memory bandwidth. A vCPU is one hyperthread. Not measured on EC2.</td></tr>
+<tr><td>Disk</td><td>About 25 GB used (35 GB with a second model). A 50 GB gp3 volume is enough.</td><td>OS 8 GB, models 8 GB, Chroma 6.1 GB, venv 0.9 GB</td></tr>
+<tr><td>Not needed on the server</td><td>The 15 GB <code>data</code> folder (only for rebuilds) and the unused Ollama models</td><td>Copy <code>project-db/chroma</code> instead of rebuilding (4 h)</td></tr>
+<tr><td>Suggested start</td><td><b>m7i.xlarge</b> (4 vCPU, 16 GB) as a trial, then <b>m7i.2xlarge</b> (8 vCPU, 32 GB) if compare answers take over about 2 minutes</td><td>Time one single-topic, one compare (or research) and one document question on the real instance. Estimates, not measured on EC2.</td></tr>
+</table>
+
+<footer>Made with IBM Bob</footer>
+</main>
+</body>
+</html>

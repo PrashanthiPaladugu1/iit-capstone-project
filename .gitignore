@@ -1,1 +1,39 @@
+
+# macOS
 .DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+**/screener_auth.json
+**/secret/
+
+# Chroma generated vector database
+AgenticStockResearchAndPortfolioManager/project-db/chroma/
+
+# Local runtime databases
+AgenticStockResearchAndPortfolioManager/project-db/*.sqlite
+AgenticStockResearchAndPortfolioManager/project-db/*.duckdb
+
+# Downloaded annual reports and research documents
+AgenticStockResearchAndPortfolioManager/screener-document-download/data/
+
+# Large downloaded market datasets
+AgenticStockResearchAndPortfolioManager/screener-document-download/data_stock_bhavcopy/
+AgenticStockResearchAndPortfolioManager/screener-document-download/data_csv_screener/
+
+# Temporary files
+*.log
+.ipynb_checkpoints/
+
+
+# Local environment configuration
+AgenticStockResearchAndPortfolioManager/config/arpm.env

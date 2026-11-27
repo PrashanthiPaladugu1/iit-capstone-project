@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agentic Research and Portfolio Maker: architecture and plan v2</title>
+<style>
+:root{--ink:#172033;--muted:#5d6b82;--line:#dce3ed;--blue:#245da8;--bluebg:#edf4ff;--green:#16734b;--greenbg:#eaf7f0;--amber:#9a5b00;--amberbg:#fff4de;--red:#a63232;--redbg:#fdeeee;--purple:#6846a5;--purplebg:#f1ecfa;--bg:#f3f6fa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+main{max-width:1060px;margin:0 auto;padding:28px 20px 60px}
+.hero{background:#122c4d;color:#fff;border-radius:16px;padding:38px 42px;margin-bottom:20px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#a9c4e6}
+.hero h1{margin:6px 0 8px;font-size:34px;line-height:1.2}
+.hero p{margin:0;color:#d5e3f5;max-width:780px}
+.chips{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:12px;border:1px solid #4a6a93;border-radius:99px;padding:3px 11px;color:#d5e3f5}
+section{background:#fff;border:1px solid var(--line);border-radius:12px;padding:26px 30px;margin:16px 0}
+h2{margin:0 0 6px;font-size:22px}h3{margin:22px 0 6px;font-size:16px}
+p{margin:8px 0}.muted{color:var(--muted)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+th{text-align:left;background:#edf3fa;color:#1c3d62}
+td,th{border:1px solid var(--line);padding:7px 10px;vertical-align:top}
+code{background:#eef2f7;border-radius:4px;padding:1px 5px;font-size:12.5px}
+.callout{border-left:4px solid var(--blue);background:var(--bluebg);padding:12px 16px;border-radius:6px;margin:14px 0}
+.callout.warn{border-color:#d58a00;background:var(--amberbg)}
+.callout.ok{border-color:var(--green);background:var(--greenbg)}
+.callout.stop{border-color:var(--red);background:var(--redbg)}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin:12px 0}
+.card{border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:#fafcfe}
+.card b{display:block;font-size:20px;color:var(--blue)}
+.card span{font-size:12.5px;color:var(--muted)}
+.diagram{background:#f7f9fc;border:1px solid var(--line);border-radius:12px;padding:10px;overflow-x:auto}
+.diagram svg{width:100%;height:auto;min-width:820px;display:block}
+.tag{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:600;white-space:nowrap}
+.t-ok{background:var(--greenbg);color:var(--green)}.t-warn{background:var(--amberbg);color:var(--amber)}
+.t-no{background:var(--redbg);color:var(--red)}.t-new{background:var(--purplebg);color:var(--purple)}
+.t-blue{background:var(--bluebg);color:var(--blue)}
+.timeline{border-left:2px solid #cbd9e9;margin:16px 0 4px 8px;padding-left:22px}
+.phase{position:relative;padding:0 0 16px}
+.phase:before{content:"";position:absolute;left:-30px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--blue);border:2px solid #fff}
+.phase h3{margin:0 0 2px}
+.check{padding-left:4px}.check li{list-style:none;margin:6px 0}
+.check li:before{content:"\2610";margin-right:8px;color:var(--blue)}
+pre{background:#101c2d;color:#e6edf7;border-radius:10px;padding:14px 16px;overflow-x:auto;font-size:12.5px;line-height:1.5}
+.wire{border:2px solid #b9c8dc;border-radius:12px;background:#f9fbfd;padding:14px;margin:12px 0}
+.wtabs{display:flex;gap:6px;margin-bottom:12px}
+.wtab{border:1px solid #b9c8dc;border-radius:8px 8px 0 0;padding:4px 14px;font-size:12.5px;background:#fff}
+.wtab.on{background:#122c4d;color:#fff;border-color:#122c4d}
+.wgrid{display:grid;gap:10px;grid-template-columns:repeat(4,1fr)}
+.wgrid .kpi{border:1px solid var(--line);border-radius:8px;background:#fff;padding:8px 10px;font-size:12px}
+.wgrid .kpi b{display:block;font-size:11px;color:var(--muted);font-weight:600}
+.wgrid .kpi i{display:block;margin-top:4px;height:10px;background:#dfe8f4;border-radius:5px;width:60%}
+.panels{display:grid;gap:10px;grid-template-columns:repeat(3,1fr);margin-top:10px}
+.panel{border:1px dashed #9fb4d1;border-radius:8px;background:#fff;padding:9px 11px;font-size:12px;min-height:92px}
+.panel b{display:block;font-size:12.5px;color:#1c3d62}
+.panel small{color:var(--muted)}
+.panel.wide{grid-column:span 2}.panel.full{grid-column:span 3}
+.bars{display:flex;align-items:flex-end;gap:5px;height:34px;margin-top:6px}
+.bars i{display:block;width:14px;background:#b7cbe6;border-radius:3px 3px 0 0}
+footer{text-align:center;color:var(--muted);font-size:12px;margin-top:26px}
+@media(max-width:760px){.wgrid{grid-template-columns:repeat(2,1fr)}.panels{grid-template-columns:1fr}.panel.wide,.panel.full{grid-column:span 1}}
+@media print{body{background:#fff}section{break-inside:avoid}}
+</style></head><body><main>
+
+<header class="hero">
+<div class="eyebrow">Architecture and plan · version 2 · draft for confirmation · 18 Nov 2026</div>
+<h1>Agentic Research and Portfolio Maker</h1>
+<p>A Nifty 50 chat app with a guarded router and three agents (technical, fundamental, portfolio), plus an admin tab that shows token usage, speed and guardrail activity for every local model call through an AI gateway. Limited to the Nifty 50.</p>
+<div class="chips"><span class="chip">LangGraph</span><span class="chip">MCP</span><span class="chip">RAG</span><span class="chip">AI gateway</span><span class="chip">Guardrails</span><span class="chip">Chroma</span><span class="chip">DuckDB</span><span class="chip">Ollama</span><span class="chip">Streamlit</span></div>
+</header>
+
+<section>
+<h2>1. What changed since version 1</h2>
+<div class="callout ok"><strong>Status:</strong> designed, nothing of the agent is built yet. Section 11 lists what I need from you.</div>
+<table>
+<tr><th>Request</th><th>How the design handles it</th></tr>
+<tr><td>Third agent that builds a portfolio of 4 to 6 stocks</td><td><span class="tag t-new">new</span> Portfolio agent with its own <code>portfolio</code> MCP server. It reuses price and fundamental data.</td></tr>
+<tr><td>Alert if more stocks are requested</td><td><span class="tag t-no">guardrail</span> Size rule enforced in code: 7 or more stocks is blocked with an alert.</td></tr>
+<tr><td>Alert for anything beyond the Nifty 50</td><td><span class="tag t-no">guardrail</span> Universe rule enforced in code on every request, for all agents.</td></tr>
+<tr><td>Admin tab for model usage and tokenomics</td><td><span class="tag t-new">new</span> Second Streamlit tab, fed by a usage log.</td></tr>
+<tr><td>"AI gateway" style tab and visualization</td><td><span class="tag t-new">new</span> Every LLM call goes through one gateway layer that counts tokens, times calls, enforces limits and writes the log.</td></tr>
+</table>
+<p>The router remains a workflow node (one LLM call that picks a route), not an agent. The portfolio agent is a real tool-calling agent, like the other two.</p>
+</section>
+
+<section>
+<h2>2. Architecture</h2>
+<div class="diagram">
+<svg viewBox="0 0 1000 640" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Segoe UI,sans-serif" font-size="13">
+<defs>
+<marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5d6b82"/></marker>
+<marker id="b" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#245da8"/></marker>
+</defs>
+
+<rect x="20" y="10" width="660" height="44" rx="10" fill="#122c4d"/>
+<text x="350" y="30" fill="#fff" text-anchor="middle" font-weight="700">Streamlit app: Chat tab</text>
+<text x="350" y="46" fill="#a9c4e6" text-anchor="middle" font-size="12">question in · answer, sources, as-of date, guardrail alerts out</text>
+<line x1="350" y1="54" x2="350" y2="78" stroke="#5d6b82" stroke-width="1.6" marker-end="url(#a)"/>
+
+<rect x="20" y="80" width="660" height="52" rx="10" fill="#fdeeee" stroke="#a63232" stroke-width="1.6"/>
+<text x="350" y="102" text-anchor="middle" font-weight="700" fill="#a63232">Guardrails (plain code, not the LLM)</text>
+<text x="350" y="120" text-anchor="middle" font-size="12" fill="#5d6b82">Nifty 50 only · portfolio size 4 to 6 · weight limits · call and token budgets</text>
+<line x1="350" y1="132" x2="350" y2="154" stroke="#5d6b82" stroke-width="1.6" marker-end="url(#a)"/>
+
+<rect x="170" y="156" width="360" height="48" rx="10" fill="#edf4ff" stroke="#245da8" stroke-width="1.6"/>
+<text x="350" y="177" text-anchor="middle" font-weight="700" fill="#1c3d62">LangGraph router (workflow node)</text>
+<text x="350" y="195" text-anchor="middle" font-size="12" fill="#5d6b82">technical · fundamental · portfolio · both · out of scope</text>
+
+<path d="M 290 204 L 290 222 L 120 222 L 120 240" fill="none" stroke="#5d6b82" stroke-width="1.6" marker-end="url(#a)"/>
+<line x1="350" y1="204" x2="350" y2="240" stroke="#5d6b82" stroke-width="1.6" marker-end="url(#a)"/>
+<path d="M 410 204 L 410 222 L 580 222 L 580 240" fill="none" stroke="#5d6b82" stroke-width="1.6" marker-end="url(#a)"/>
+
+<rect x="20" y="242" width="200" height="54" rx="10" fill="#eaf7f0" stroke="#16734b" stroke-width="1.6"/>
+<text x="120" y="265" text-anchor="middle" font-weight="700" fill="#16734b">Technical agent</text>
+<text x="120" y="283" text-anchor="middle" font-size="12" fill="#5d6b82">prices, indicators, screens</text>
+<rect x="250" y="242" width="200" height="54" rx="10" fill="#f1ecfa" stroke="#6846a5" stroke-width="1.6"/>
+<text x="350" y="265" text-anchor="middle" font-weight="700" fill="#6846a5">Fundamental agent</text>
+<text x="350" y="283" text-anchor="middle" font-size="12" fill="#5d6b82">financials, documents</text>
+<rect x="480" y="242" width="200" height="54" rx="10" fill="#edf4ff" stroke="#245da8" stroke-width="1.6"/>
+<text x="580" y="265" text-anchor="middle" font-weight="700" fill="#245da8">Portfolio agent (new)</text>
+<text x="580" y="283" text-anchor="middle" font-size="12" fill="#5d6b82">4 to 6 stocks, weights, risk</text>
+
+<line x1="120" y1="296" x2="120" y2="326" stroke="#5d6b82" stroke-width="1.6" marker-end="url(#a)"/>
+<line x1="350" y1="296" x2="350" y2="326" stroke="#5d6b82" stroke-width="1.6" marker-end="url(#a)"/>
+<line x1="580" y1="296" x2="580" y2="326" stroke="#5d6b82" stroke-width="1.6" marker-end="url(#a)"/>
+<text x="128" y="316" font-size="11.5" fill="#5d6b82">MCP</text>
+<text x="358" y="316" font-size="11.5" fill="#5d6b82">MCP</text>
+<text x="588" y="316" font-size="11.5" fill="#5d6b82">MCP</text>
+
+<rect x="20" y="328" width="200" height="84" rx="10" fill="#fff" stroke="#16734b" stroke-width="1.4"/>
+<text x="120" y="351" text-anchor="middle" font-weight="700">MCP: market-data</text>
+<text x="120" y="371" text-anchor="middle" font-size="12" fill="#5d6b82">quotes, returns, RSI/MACD</text>
+<text x="120" y="388" text-anchor="middle" font-size="12" fill="#5d6b82">volume, delivery, screens</text>
+<rect x="250" y="328" width="200" height="84" rx="10" fill="#fff" stroke="#6846a5" stroke-width="1.4"/>
+<text x="350" y="351" text-anchor="middle" font-weight="700">MCP: fundamentals</text>
+<text x="350" y="371" text-anchor="middle" font-size="12" fill="#5d6b82">financials, growth, ratios</text>
+<text x="350" y="388" text-anchor="middle" font-size="12" fill="#5d6b82">search_documents (RAG)</text>
+<rect x="480" y="328" width="200" height="84" rx="10" fill="#fff" stroke="#245da8" stroke-width="1.4"/>
+<text x="580" y="351" text-anchor="middle" font-weight="700">MCP: portfolio (new)</text>
+<text x="580" y="371" text-anchor="middle" font-size="12" fill="#5d6b82">validate, build, risk, backtest</text>
+<text x="580" y="388" text-anchor="middle" font-size="12" fill="#5d6b82">limits enforced again here</text>
+
+<line x1="120" y1="412" x2="120" y2="440" stroke="#5d6b82" stroke-width="1.6" marker-end="url(#a)"/>
+<line x1="350" y1="412" x2="350" y2="440" stroke="#5d6b82" stroke-width="1.6" marker-end="url(#a)"/>
+<line x1="580" y1="412" x2="580" y2="440" stroke="#5d6b82" stroke-width="1.6" marker-end="url(#a)"/>
+
+<rect x="20" y="442" width="200" height="66" rx="10" fill="#f7f9fc" stroke="#5d6b82"/>
+<text x="120" y="466" text-anchor="middle" font-weight="700">DuckDB: prices</text>
+<text x="120" y="485" text-anchor="middle" font-size="12" fill="#5d6b82">50 files · 57,767 rows</text>
+<rect x="250" y="442" width="200" height="66" rx="10" fill="#f7f9fc" stroke="#5d6b82"/>
+<text x="350" y="466" text-anchor="middle" font-weight="700">DuckDB + Chroma</text>
+<text x="350" y="485" text-anchor="middle" font-size="12" fill="#5d6b82">49 workbooks · PDF vectors</text>
+<rect x="480" y="442" width="200" height="66" rx="10" fill="#f7f9fc" stroke="#5d6b82"/>
+<text x="580" y="466" text-anchor="middle" font-weight="700">Saved portfolios</text>
+<text x="580" y="485" text-anchor="middle" font-size="12" fill="#5d6b82">SQLite · reads prices + financials</text>
+
+<rect x="170" y="548" width="360" height="46" rx="10" fill="#fff" stroke="#6846a5" stroke-width="1.6" stroke-dasharray="5 4"/>
+<text x="350" y="568" text-anchor="middle" font-weight="700" fill="#6846a5">Synthesizer (workflow node)</text>
+<text x="350" y="585" text-anchor="middle" font-size="12" fill="#5d6b82">all agent results merge here, then return to the Chat tab</text>
+
+<rect x="720" y="10" width="260" height="44" rx="10" fill="#6846a5"/>
+<text x="850" y="30" fill="#fff" text-anchor="middle" font-weight="700">Streamlit app: Admin tab</text>
+<text x="850" y="46" fill="#e4dbf4" text-anchor="middle" font-size="12">usage, tokenomics, guardrails</text>
+
+<rect x="720" y="156" width="260" height="150" rx="10" fill="#edf4ff" stroke="#245da8" stroke-width="2"/>
+<text x="850" y="180" text-anchor="middle" font-weight="700" fill="#1c3d62">AI gateway (new)</text>
+<text x="850" y="204" text-anchor="middle" font-size="12" fill="#5d6b82">one entry point for every LLM call</text>
+<text x="850" y="228" text-anchor="middle" font-size="12" fill="#5d6b82">counts tokens · times each call</text>
+<text x="850" y="246" text-anchor="middle" font-size="12" fill="#5d6b82">model allow-list · timeouts</text>
+<text x="850" y="264" text-anchor="middle" font-size="12" fill="#5d6b82">token and call budgets</text>
+<text x="850" y="282" text-anchor="middle" font-size="12" fill="#5d6b82">writes the usage log</text>
+
+<line x1="530" y1="180" x2="700" y2="180" stroke="#245da8" stroke-width="1.6"/>
+<line x1="680" y1="269" x2="700" y2="269" stroke="#245da8" stroke-width="1.6"/>
+<line x1="530" y1="571" x2="700" y2="571" stroke="#245da8" stroke-width="1.6"/>
+<line x1="700" y1="180" x2="700" y2="571" stroke="#245da8" stroke-width="1.6"/>
+<line x1="700" y1="231" x2="718" y2="231" stroke="#245da8" stroke-width="1.8" marker-end="url(#b)"/>
+<text x="706" y="430" font-size="11" fill="#245da8" transform="rotate(-90 706 430)">LLM calls from router, 3 agents, synthesizer</text>
+
+<line x1="780" y1="306" x2="780" y2="350" stroke="#245da8" stroke-width="1.6" marker-end="url(#b)"/>
+<line x1="920" y1="306" x2="920" y2="350" stroke="#245da8" stroke-width="1.6" marker-end="url(#b)"/>
+<rect x="720" y="352" width="130" height="78" rx="10" fill="#f7f9fc" stroke="#5d6b82"/>
+<text x="785" y="376" text-anchor="middle" font-weight="700">Ollama</text>
+<text x="785" y="395" text-anchor="middle" font-size="12" fill="#5d6b82">local chat +</text>
+<text x="785" y="411" text-anchor="middle" font-size="12" fill="#5d6b82">embedding models</text>
+<rect x="860" y="352" width="120" height="78" rx="10" fill="#f7f9fc" stroke="#6846a5"/>
+<text x="920" y="376" text-anchor="middle" font-weight="700">Usage log</text>
+<text x="920" y="395" text-anchor="middle" font-size="12" fill="#5d6b82">one row per</text>
+<text x="920" y="411" text-anchor="middle" font-size="12" fill="#5d6b82">call or event</text>
+<path d="M 980 391 L 994 391 L 994 32 L 982 32" fill="none" stroke="#6846a5" stroke-width="1.6" marker-end="url(#a)"/>
+</svg>
+</div>
+<p class="muted">Blue lines: all LLM traffic passes through the gateway. The Technical and Fundamental agents use the same path. The purple line feeds the usage log to the Admin tab.</p>
+</section>
+
+<section>
+<h2>3. Guardrails</h2>
+<p>Guardrails are plain code, not LLM instructions, so a clever prompt can't talk its way past them. They run before the router, and the <code>portfolio</code> MCP server checks the same rules again inside its tools.</p>
+<table>
+<tr><th>#</th><th>Rule</th><th>Action</th><th>Alert shown to the user</th></tr>
+<tr><td>G1</td><td>Every stock must be in the Nifty 50 list (<code>NIFTY_50.csv</code>, 50 stocks)</td><td><span class="tag t-no">block</span></td><td>"XYZ is not in the Nifty 50. This app covers only the 50 Nifty 50 stocks."</td></tr>
+<tr><td>G2</td><td>Portfolio has 4 to 6 distinct stocks. 7 or more is blocked; the same symbol twice counts once</td><td><span class="tag t-no">block</span></td><td>"A portfolio can hold 4 to 6 stocks. You asked for 8. Choose up to 6, or I can pick the top 6."</td></tr>
+<tr><td>G3</td><td>Fewer than 4 stocks (my assumption, you only specified the upper limit)</td><td><span class="tag t-no">block</span></td><td>"A portfolio needs at least 4 stocks. Add more, or let me suggest some."</td></tr>
+<tr><td>G4</td><td>Weights sum to 100%, each between a minimum and maximum (defaults 5% and 40%, adjustable)</td><td><span class="tag t-no">block</span></td><td>"Weights must total 100% and each stay within 5% to 40%."</td></tr>
+<tr><td>G5</td><td>More than half the weight in one sector (industry group from <code>nifty-50.csv</code>)</td><td><span class="tag t-warn">warn</span></td><td>"58% of this portfolio is in Financial Services."</td></tr>
+<tr><td>G6</td><td>A stock has under one year of price history (TMPV has 276 days)</td><td><span class="tag t-warn">warn</span></td><td>"TMPV has only 276 trading days, so risk and backtest results are less reliable."</td></tr>
+<tr><td>G7</td><td>Every portfolio answer carries a "research tool, not investment advice" note, the data date and the unadjusted-price caveat</td><td><span class="tag t-blue">note</span></td><td>Shown under the result</td></tr>
+<tr><td>G8</td><td>Limits per question: tool calls, agent loop steps, tokens (set in the gateway)</td><td><span class="tag t-no">stop</span></td><td>"Stopped after 12 tool calls. Try a narrower question."</td></tr>
+</table>
+<p class="muted">Every trigger is written to the usage log, so the Admin tab can show which rules fire most.</p>
+</section>
+
+<section>
+<h2>4. Portfolio agent</h2>
+<p>Two ways to start: you name the stocks ("make a portfolio of TCS, HDFCBANK, ITC, LT"), or you give a goal ("a low-risk 5-stock portfolio"). In the second case the agent scores candidates with the technical and fundamental tools, then proposes 4 to 6.</p>
+<table>
+<tr><th>Tool (<code>portfolio</code> MCP server)</th><th>What it does</th></tr>
+<tr><td><code>validate_portfolio(symbols, weights)</code></td><td>Runs G1 to G6 and returns pass, warnings or the block reason</td></tr>
+<tr><td><code>suggest_portfolio(goal, n, risk)</code></td><td>Picks n stocks (4 to 6) from the Nifty 50 using momentum, volatility and fundamental scores, spread across sectors</td></tr>
+<tr><td><code>build_portfolio(symbols, method)</code></td><td>Sets weights by equal weight, inverse volatility, risk parity, minimum variance or maximum Sharpe</td></tr>
+<tr><td><code>portfolio_metrics(portfolio)</code></td><td>Return, volatility, max drawdown, Sharpe, correlation matrix, beta against an equal-weight Nifty 50 proxy</td></tr>
+<tr><td><code>sector_exposure(portfolio)</code></td><td>Weight by industry group</td></tr>
+<tr><td><code>allocate_capital(portfolio, amount)</code></td><td>Whole shares per stock at the latest close, and cash left over</td></tr>
+<tr><td><code>backtest_portfolio(portfolio, start, rebalance)</code></td><td>Historical value with periodic rebalancing, with the price-adjustment caveat</td></tr>
+<tr><td><code>compare_portfolios(a, b)</code></td><td>Side-by-side metrics</td></tr>
+<tr><td><code>swap_stock(portfolio, out, in)</code></td><td>Replace one holding, re-checked by the guardrails</td></tr>
+<tr><td><code>rebalance_plan(portfolio, drift)</code></td><td>Trades needed to return to target weights</td></tr>
+<tr><td><code>save_portfolio</code> / <code>load_portfolio</code> / <code>list_portfolios</code></td><td>Keep named portfolios between chats</td></tr>
+</table>
+<div class="callout warn"><strong>Limits of the data:</strong> there is no Nifty 50 index price history on disk, only a one-day snapshot, so beta uses an equal-weight average of the 50 stocks as a stand-in. Prices are not adjusted for splits, bonuses or demergers, so long backtests can be off.</div>
+<h3>Example</h3>
+<pre>You:    Build a portfolio of 8 stocks.
+App:    [Guardrail G2] A portfolio can hold 4 to 6 stocks. You asked for 8.
+        Choose up to 6, or I can pick the top 6.
+
+You:    Add Tesla and Infosys to my portfolio.
+App:    [Guardrail G1] Tesla is not in the Nifty 50. This app covers only the 50 Nifty 50 stocks.</pre>
+</section>
+
+<section>
+<h2>5. AI gateway and tokenomics</h2>
+<p>Every call to Ollama, including embeddings during document loading, goes through one gateway function. Nothing talks to the model directly, so the log is complete.</p>
+<h3>What is recorded for each call</h3>
+<p class="muted">Ollama returns these numbers with every response (I confirmed this on your machine).</p>
+<table>
+<tr><th>Field</th><th>Source</th><th>Use</th></tr>
+<tr><td>Input tokens</td><td><code>prompt_eval_count</code></td><td>Usage and what-if cost</td></tr>
+<tr><td>Output tokens</td><td><code>eval_count</code></td><td>Usage and what-if cost</td></tr>
+<tr><td>Total time, load time</td><td><code>total_duration</code>, <code>load_duration</code></td><td>Latency, cold starts (the first call to a model loads it into memory)</td></tr>
+<tr><td>Generation speed</td><td><code>eval_count</code> divided by <code>eval_duration</code></td><td>Tokens per second per model</td></tr>
+<tr><td>Who and why</td><td>Added by the gateway</td><td>Session, agent, graph node, route, model, status, error, tool calls and their time</td></tr>
+<tr><td>Guardrail events</td><td>Added by the guardrails</td><td>Rule id, action (block, warn, stop), symbol or count involved</td></tr>
+</table>
+<h3>Cost for a local model</h3>
+<p>Ollama has no per-token fee, so a real dollar cost doesn't exist. The Admin tab shows tokens and time as the main measures, plus an optional <strong>what-if cost</strong>: tokens multiplied by a rate per million tokens that you set for each model. I won't pre-fill any prices.</p>
+<h3>Controls the gateway can enforce</h3>
+<ul>
+<li>Model allow-list, and which model each agent uses.</li>
+<li>Timeout per call, and a maximum number of agent loop steps per question.</li>
+<li>Token budget per question, per session and per day.</li>
+<li>Retry once on failure, then a clear error instead of a hang.</li>
+</ul>
+<p class="muted">Start as a Python wrapper inside the app. It can later become a small separate service, if other tools need to share it.</p>
+</section>
+
+<section>
+<h2>6. Admin tab</h2>
+<p>A second Streamlit tab, protected by a password kept in an environment variable. Charts are interactive Plotly charts. The wireframe below shows the layout only, with no real data.</p>
+<div class="wire">
+<div class="wtabs"><span class="wtab">Chat</span><span class="wtab on">Admin</span></div>
+<div class="wgrid">
+<div class="kpi"><b>Requests</b><i></i></div>
+<div class="kpi"><b>Input / output tokens</b><i></i></div>
+<div class="kpi"><b>Median and p95 latency</b><i></i></div>
+<div class="kpi"><b>Tokens per second</b><i></i></div>
+<div class="kpi"><b>Error and timeout rate</b><i></i></div>
+<div class="kpi"><b>Guardrail triggers</b><i></i></div>
+<div class="kpi"><b>Budget used today</b><i></i></div>
+<div class="kpi"><b>What-if cost</b><i></i></div>
+</div>
+<div class="panels">
+<div class="panel wide"><b>Tokens over time</b><small>area chart, input vs output, filter by day or hour</small><div class="bars"><i style="height:40%"></i><i style="height:65%"></i><i style="height:50%"></i><i style="height:85%"></i><i style="height:60%"></i><i style="height:95%"></i><i style="height:70%"></i><i style="height:45%"></i></div></div>
+<div class="panel"><b>Route mix</b><small>donut: technical, fundamental, portfolio, both, refused</small></div>
+<div class="panel"><b>Tokens by agent</b><small>stacked bars: router, technical, fundamental, portfolio, synthesizer</small></div>
+<div class="panel"><b>Tokens by model</b><small>bars per Ollama model</small></div>
+<div class="panel"><b>Speed by model</b><small>tokens per second, and cold-start load time</small></div>
+<div class="panel"><b>Latency distribution</b><small>box plot by agent</small></div>
+<div class="panel"><b>Tool calls</b><small>count and average time per MCP tool</small></div>
+<div class="panel"><b>Guardrail events</b><small>bars by rule G1 to G8, trend over time</small></div>
+<div class="panel"><b>Embedding usage</b><small>tokens per RAG loading tier</small></div>
+<div class="panel full"><b>Request log</b><small>table: time, question preview, route, agent, model, tokens in/out, seconds, status. Sort, filter and download. Top 10 most expensive questions on a second view.</small></div>
+<div class="panel full"><b>Controls (read-only at first)</b><small>model per agent, allow-list, timeouts, budgets, what-if rates per model, and the portfolio size and weight limits</small></div>
+</div>
+</div>
+<p class="muted">Privacy: by default the log stores a short question preview, not full prompts and answers. A setting can turn full text logging on for debugging.</p>
+</section>
+
+<section>
+<h2>7. Router behaviour</h2>
+<table>
+<tr><th>Question example</th><th>Route</th><th>What happens</th></tr>
+<tr><td>"Latest price and 52-week range of TCS"</td><td><span class="tag t-ok">technical</span></td><td>get_latest_quote, get_52w_high_low</td></tr>
+<tr><td>"Five-year revenue CAGR of Asian Paints"</td><td><span class="tag t-new">fundamental</span></td><td>get_financials, compute_growth</td></tr>
+<tr><td>"Key risks in the latest Reliance annual report"</td><td><span class="tag t-new">fundamental</span></td><td>search_documents</td></tr>
+<tr><td>"Make a 5-stock low-risk portfolio and show its drawdown"</td><td><span class="tag t-blue">portfolio</span></td><td>suggest_portfolio, build_portfolio, portfolio_metrics</td></tr>
+<tr><td>"Which stocks have rising revenue but falling price?"</td><td><span class="tag t-warn">both</span></td><td>Technical and fundamental agents run in parallel</td></tr>
+<tr><td>"Build a portfolio of 9 stocks"</td><td><span class="tag t-no">guardrail G2</span></td><td>Blocked before the router, alert shown</td></tr>
+<tr><td>"Price of Tesla, or Nifty Next 50 stocks"</td><td><span class="tag t-no">guardrail G1</span></td><td>Blocked, alert shown</td></tr>
+</table>
+<p>If portfolio questions turn out to need multi-step planning that depends on earlier results, the router can later become a supervisor agent. I'd start with the simple node.</p>
+</section>
+
+<section>
+<h2>8. What the data gives us</h2>
+<p class="muted">Measured on this machine, 18 Nov 2026.</p>
+<div class="grid">
+<div class="card"><b>50</b><span>stocks, from <code>data_nse_index/20261116/NIFTY_50.csv</code></span></div>
+<div class="card"><b>57,767</b><span>price rows (EQ series), 23 Mar 2022 to 13 Nov 2026</span></div>
+<div class="card"><b>3,406</b><span>PDFs: 667 annual reports, 999 transcripts, 1,740 presentations</span></div>
+<div class="card"><b>~288,000</b><span>PDF pages (estimated), all with a text layer</span></div>
+<div class="card"><b>49</b><span>Excel workbooks (P&amp;L, quarters, balance sheet, cash flow)</span></div>
+<div class="card"><b>15 GB</b><span>in <code>data/</code>, 50 stock folders</span></div>
+</div>
+<table>
+<tr><th>Stock</th><th>Gap</th><th>Effect</th></tr>
+<tr><td>INFY</td><td>Excel only, no PDFs (website returns 403 to scripts)</td><td>Numbers only, "no documents" for text questions</td></tr>
+<tr><td>SBILIFE</td><td>No Excel file</td><td>No structured financials</td></tr>
+<tr><td>ITC, TRENT</td><td>No transcripts</td><td>No management commentary</td></tr>
+<tr><td>BAJAJ-AUTO</td><td>No presentations</td><td>Fewer sources</td></tr>
+<tr><td>BSE, JIOFIN, ETERNAL</td><td>3 to 5 annual reports</td><td>Short document history</td></tr>
+<tr><td>TMPV</td><td>276 trading days of prices</td><td>Guardrail G6 warning</td></tr>
+</table>
+<div class="callout warn"><strong>Price caveat:</strong> bhavcopy prices are not adjusted for splits, bonuses or demergers. The index file is a snapshot of today's members, with no membership history.</div>
+<h3>Staged document loading (RAG)</h3>
+<table>
+<tr><th>Tier</th><th>What</th><th>Approx. pages</th></tr>
+<tr><td>1</td><td>All transcripts (Excel goes to DuckDB, not vectors)</td><td>~21,000</td></tr>
+<tr><td>2</td><td>Latest 3 annual reports per stock</td><td>~40,000</td></tr>
+<tr><td>3</td><td>Latest 4 to 6 presentations per stock</td><td>~20,000+</td></tr>
+</table>
+<p class="muted">The full set is roughly 0.6 to 0.9 million chunks. Embedding speed is not measured yet. The gateway will log it during Tier 1, and that decides Tiers 2 and 3.</p>
+</section>
+
+<section>
+<h2>9. Local setup and constraints</h2>
+<table>
+<tr><th>Item</th><th>Now</th><th>Status</th></tr>
+<tr><td>Hardware</td><td>M1 Pro, 32 GB RAM</td><td><span class="tag t-ok">fine for local 7B to 12B models</span></td></tr>
+<tr><td>Model tool calling</td><td>gemma4:12b, gemma4:e4b, mistral:7b, phi4-mini, llama3.2:1b all list <code>tools</code></td><td><span class="tag t-ok">verified</span></td></tr>
+<tr><td>Token counts from Ollama</td><td>Returned on every call</td><td><span class="tag t-ok">verified</span></td></tr>
+<tr><td>Python</td><td>3.9.6 default</td><td><span class="tag t-warn">3.10+ needed for the MCP SDK; use a 3.11 or 3.12 venv</span></td></tr>
+<tr><td>Installed</td><td>chromadb, langgraph, langchain, ollama, pandas, openpyxl, pypdf, streamlit</td><td><span class="tag t-ok">ready</span></td></tr>
+<tr><td>Missing</td><td>duckdb, mcp, plotly</td><td><span class="tag t-warn">install in the venv</span></td></tr>
+<tr><td>Disk</td><td>19 GiB free (97% used)</td><td><span class="tag t-warn">vector store needs ~3 to 6 GB</span></td></tr>
+<tr><td>Speed</td><td>Router, agents and synthesizer each add LLM calls on one local model</td><td><span class="tag t-warn">measure; the Admin tab will show it</span></td></tr>
+</table>
+</section>
+
+<section>
+<h2>10. Build plan</h2>
+<div class="timeline">
+<div class="phase"><h3>Phase 1: foundation and technical agent</h3><p>Python venv, <strong>AI gateway with usage logging</strong>, DuckDB over the 50 price files, <code>market-data</code> MCP server, technical LangGraph agent.<br><span class="muted">Done when: test questions give correct, dated answers, indicators match a reference calculation, and every LLM call appears in the usage log.</span></p></div>
+<div class="phase"><h3>Phase 2: fundamentals, structured</h3><p>Excel data into DuckDB, financial tools and the snapshot ratios from <code>nifty-50.csv</code>.<br><span class="muted">Done when: figures reconcile with the workbooks, with units and consolidated status shown.</span></p></div>
+<div class="phase"><h3>Phase 3: document RAG, Tier 1 then 2 then 3</h3><p>Extract, chunk, embed, index, and <code>search_documents</code> with filters and page citations.<br><span class="muted">Done when: answers cite file and page, and "no documents" is returned for gaps such as INFY.</span></p></div>
+<div class="phase"><h3>Phase 4: guardrails, router and chat app</h3><p>Guardrails G1 to G8 as code with tests, the router, the parallel "both" route, the synthesizer and the Chat tab.<br><span class="muted">Done when: a fixed list of test questions routes correctly and every guardrail case triggers its alert.</span></p></div>
+<div class="phase"><h3>Phase 5: portfolio agent</h3><p><code>portfolio</code> MCP server, the agent, saved portfolios, and the checks repeated inside the tools.<br><span class="muted">Done when: 4 to 6 stocks work, 3 and 7 or more are blocked, non-Nifty 50 stocks are blocked, and metrics match a hand calculation.</span></p></div>
+<div class="phase"><h3>Phase 6: Admin tab</h3><p>Password-protected tab with the KPIs and charts above, request log, guardrail view and read-only controls.<br><span class="muted">Done when: totals in the tab match the raw usage log, and a budget limit visibly stops a run.</span></p></div>
+</div>
+</section>
+
+<section>
+<h2>11. Please confirm</h2>
+<ul class="check">
+<li><strong>Portfolio size:</strong> block both 7 or more and fewer than 4 stocks (G3 is my assumption).</li>
+<li><strong>Weight limits:</strong> default 5% minimum and 40% maximum per stock. Change them?</li>
+<li><strong>Portfolio start:</strong> support both "I name the stocks" and "you pick them for a goal".</li>
+<li><strong>Cost view:</strong> tokens and time as the main measure, with an optional what-if cost where you enter the rate per model.</li>
+<li><strong>Admin access:</strong> a password from an environment variable is enough, or do you want something else?</li>
+<li><strong>Logging:</strong> store question previews only by default.</li>
+<li><strong>Model:</strong> which local model for the router and agents (gemma4:12b is my first guess, mistral:7b the lighter option)?</li>
+<li><strong>Data gaps:</strong> re-run <code>--index Nifty50 --force</code> before building? INFY PDFs may stay blocked.</li>
+<li><strong>Name:</strong> <span class="tag t-ok">decided</span> Agentic Research and Portfolio Maker. Code folder <code>agentic_research_portfolio_maker/</code>.</li>
+<li><strong>Start with Phase 1</strong> once you confirm.</li>
+</ul>
+<p class="muted">Context is saved in <code>context/AGENT_PLAN.md</code>. The earlier blueprint is <code>html/IITKGP-AgenticStockReserach.html</code>.</p>
+</section>
+
+<footer>Agentic Research and Portfolio Maker · plan v2 · 18 Nov 2026</footer>
+</main></body></html>

@@ -1,0 +1,234 @@
+# Global context: Agentic Stock Research and Portfolio Manager
+
+Single entry point for any session (human or assistant). Read this first, then the detail files it links to.
+Created 2026-11-19, last updated 2026-11-21 (00:30 IST). Update the "Status" and "Open decisions" sections whenever something changes. Previous versions: `GLOBAL_CONTEXT.v1.md` to `GLOBAL_CONTEXT.v6.md`.
+**Task tracker (done, pending, console commands to try): `STATUS_AND_PROGRESS.md` in this folder.**
+**Prompts (flow, routes, example prompts, agent system prompts, multi-portfolio and compare design): `PROMPT_CONTEXT.md` in this folder.**
+**RAG (documents, chunking, rebuild script, Excel handling, open questions): `RAG_CONTEXT.md` in this folder.**
+
+## Folder layout (parent folder)
+
+```
+AgenticStockResearchAndPortfolioManager/
+├── global-context/              THIS folder: GLOBAL_CONTEXT.md (layout, rules, architecture), STATUS_AND_PROGRESS.md (done, pending, console commands), PROMPT_CONTEXT.md (prompts), RAG_CONTEXT.md (RAG)
+├── global-architecture/         Architecture and status reports (HTML) for the whole project
+├── bin/                         scripts (.sh): start_all, stop_all, start_app, stop_app, start_ollama, stop_ollama, status, run_py, rag_build, rag_build_bg, rag_build_stop
+├── config/                      paths.json (EVERY path), setup.sh (one-shot EC2/Linux VM setup), arpm.env.example (non-path settings and API key variables)
+├── screener-document-download/  Downloaders + downloaded data. Not changed by the app. The app reads it read-only.
+├── project-code/                Python and agent files only (agents, MCP servers, gateway, RAG code), with its .venv and tests/. No data, no databases.
+├── project-db/                  All databases: Chroma, DuckDB, SQLite files (usage, settings, portfolios). Room for MySQL/PostgreSQL files or config later.
+├── runtime/                     PID files (run/) and service logs (logs/) written by bin/*.sh
+└── run.txt                      Scratch command file (empty)
+```
+
+`runtime/` also holds `screens/` (UI screenshots from `ui_shot.py`). `project-db/` holds `arpm.duckdb`, `fundamentals.duckdb`, `settings.sqlite`, `usage.sqlite`, `rag_ingest.sqlite`, `chats.sqlite` and `chroma/` (6.1 GB).
+```
+
+App name: **Agentic Research and Portfolio Maker** (not "StockWood"). Python package: `agentic_research_portfolio_maker`.
+
+## Rules
+1. App code goes in `project-code/` only. Never in `screener-document-download/`.
+2. **No path is written in code or scripts.** Every path is an entry in `config/paths.json`; code calls `config.get("name")` / `config.pattern("price_file", symbol=...)`, shell scripts use `eval "$(python3 project-code/config.py shell)"`. To move data or databases, edit that one file (absolute paths are allowed). `ARPM_PATHS_FILE` points at another paths file. A test fails if a path is hard-coded in `project-code/*.py`.
+3. The app writes only to `project-db/` (databases) and `runtime/` (PIDs, logs). `project-code/` holds code only.
+4. The app must never read or copy: `screener_auth.json`, `secret/`, `download_tracker.txt`, `downloaded_history.json`, `logs/`.
+5. Scope is the Nifty 50 only. Numbers come from tools (SQL/Python), never from the LLM or vector similarity.
+6. Default `python3` is 3.9.6 and cannot run the app. Use Python 3.12 via `uv` in `project-code/.venv`.
+7. **Never delete anything in this project folder (user, 2026-11-19).** See "No-delete rule" below.
+
+## No-delete rule (user, 2026-11-19)
+Nothing in `AgenticStockResearchAndPortfolioManager/` is ever deleted, by an assistant or by a script: no files, folders, data, databases, docs, old plans, scratch scripts or leftovers. Work moves forward by adding a **newer version** next to the old one.
+
+How to apply it (my reading of the rule; correct it if you meant something else):
+- **Superseded file or folder:** leave it where it is. Mark it as superseded in the docs (a "Superseded by" line or the Leftovers table), and create the new one beside it. Example: the old `agentic_research_portfolio_maker/`, `.venv/` and `requirements.txt` in `screener-document-download/` stay, even though `project-code/` replaces them.
+- **New version of a document or plan:** write a new file with a version suffix (for example `Plan_v2.html`). Do not overwrite the old file. `global-architecture/OLD-Agentic-NIFTY50-Plan.html` stays as is.
+- **Whole-file rewrite of code or docs:** keep the old file under a versioned name first (for example `agent_x.v1.py`), then write the new file under the real name.
+- **Small edits** to a living file (this context, the status file, code) are made in place and logged in the change log. This is the only case where text is replaced.
+- **Data and databases:** a rebuild must not overwrite the previous file. Keep the old one under a dated name. Prices are rebuilt from the CSVs, which are never touched.
+- **Scripts** must not use `rm`, `unlink`, `rmtree`, `DROP` or `DELETE` on project files or data. Assistants must not run delete commands here and must ask first if a task seems to need one.
+- Not covered: Python cache files and the throwaway `.building` file used while a database is being built.
+
+Known places where the current code does not follow this rule yet (not changed, decision pending):
+| Where | What it does | Proposed change |
+|---|---|---|
+| `project-code/prices_db.py` `build()` | Replaces `project-db/arpm.duckdb` with the rebuilt file | Move the old file to `arpm.<date-time>.duckdb` before the swap |
+| `bin/_common.sh`, `bin/start_app.sh`, `bin/stop_ollama.sh` | `rm -f` on PID files in `runtime/run/` | Keep: these are process markers, not project content. Or overwrite them instead of removing them |
+| `project-db/*.sqlite` | Settings and usage rows are updated in place | Audit table already keeps old values. Usage rows are only added, never removed |
+
+## No Docker (user, 2026-11-19)
+Everything runs as plain processes in the venv. `bin/*.sh` start and stop them with PID files in `runtime/run/` and logs in `runtime/logs/`. Langfuse (needs containers) is therefore out unless the user changes this.
+MCP servers are not separate processes. The app starts each over stdio on demand.
+
+## Naming convention in `project-code/` (user, 2026-11-19)
+Each agent is a single top-level Python file (not a directory) named `agent_<role>.py`:
+- `agent_technical.py` (prices, indicators)
+- `agent_fundamental.py` (financials, document RAG)
+- `agent_research_analyst.py` (added 2026-11-19: combines technical and fundamental into a research note and a stock scorecard)
+- `agent_portfolio_manager.py` (renamed from `agent_portfolio.py` on 2026-11-19: builds, rebalances and monitors 4 to 6 stock portfolios)
+
+Route label stays `portfolio` and the MCP server stays `mcp_portfolio.py`: they name a capability, not an agent.
+
+The router is a workflow node, not an agent, so it does not get the `agent_` prefix. Other modules: built are `mcp_market_data.py`, `mcp_fundamentals.py`, `fundamentals.py`, `fundamentals_db.py`, `gateway.py`, `providers.py`, `model_settings.py`, `router.py` (keyword version), `app_ui.py`; proposed are `mcp_portfolio.py`, `guardrails.py`, `prompt_enhancer.py`, `scorecard.py`.
+
+## What the app reads (all under `data_root` in `config/paths.json`)
+| Path | Used for |
+|---|---|
+| `data_stock_bhavcopy_nifty50/<SYMBOL>.csv` | Prices (technical, portfolio agents) |
+| `data/<SYMBOL>/Financials_<SYMBOL>.xlsx` | Structured financials (fundamental agent). Loaded into `fundamentals.duckdb` by `fundamentals_db.py`; the app reads the DuckDB file, not the workbooks |
+| `data/<SYMBOL>/*.pdf` | Documents for RAG |
+| `Reference-Files/nifty-50.csv` | 50-stock list, industry group (guardrail G1, G5) |
+| `data_nse_index/<date>/NIFTY_50.csv` | Alternative 50-stock list |
+
+## Status (as of 2026-11-21 00:30 IST; rows dated earlier are still true unless a newer row says otherwise)
+| Area | State |
+|---|---|
+| **Newest** | **293 tests pass** (20 test files). App up on port 8502. **Built since the 2026-11-20 14:00 update:** ChatGPT-style web app with saved conversations (`chat_store.py`, `chats.sqlite`, path `chats_db`); router additions (conference-call wordings, capex, guidance, order book, attrition, a `RESEARCH` list); **research analyst** (`agent_research_analyst.py`, used for the `both` route: split, run both specialists on one budget, merge with number and citation checks); **tokenomics Part 1** (cost columns, `rates` table, `cost_cap`, `tokenomics.py`, cost in `budget.py`). **Not built:** Admin Tokenomics tab, optional Langfuse tracing, portfolio manager, guardrails G1 to G7, prompt enhancer, out-of-scope refusal, compare agent. Next step and the full list: `STATUS_AND_PROGRESS.md` section 2. |
+| Downloader (`screener-document-download/code/`) | Done. 233 unit tests passed on 2026-11-18. Supports `--index Nifty50`, `--stock SYM`, `--workers`. |
+| Prices | `data_stock_bhavcopy_nifty50/`: 50 files, 57,767 raw rows, of which 2,600 are exact duplicates (holiday files repeat the previous day). **55,167 rows in DuckDB** after removing them. 23-Mar-2022 to 13-Nov-2026. Unadjusted for splits, bonuses and demergers (14 stocks have one-day moves over 25%). Shortest histories: TMPV 260 days, ETERNAL 394, JIOFIN 788. |
+| Documents | `data/`: 50 folders, about 15 GB. INFY Excel only; ITC and TRENT no transcripts; BAJAJ-AUTO no presentations. **Excel: 49 workbooks; only SBILIFE has none** (corrected 2026-11-20: M&M has `Financials_M_M.xlsx`, the `&` is written as `_`, so the `financials_file` pattern in `paths.json` misses it). |
+| RAG index | **(Superseded: the full build FINISHED 2026-11-20 04:16 with 528,991 chunks from 1,477 files, 0 failed; 6.1 GB; the chat searches it.)** Older text: full build running since 2026-11-20 00:15 (all 50 stocks, tiers 1 to 3, latest 5 annual reports, 1000/150, about 465,000 chunks, ETA about 3 h 20 m). TCS trial done earlier (17 files, 5,067 chunks). Log `runtime/logs/rag_build.log`; per-file records in `project-db/rag_ingest.sqlite`. Not searchable from the chat yet. Details: `RAG_CONTEXT.md`. |
+| Plan | Architecture v2 designed and documented. Phase 1 (prices, indicators, MCP market-data server, gateway, technical agent) is built and tested. **Added 2026-11-20:** RAG code (chunker, store, build script) and a Streamlit web app (Chat and Admin tabs) at http://127.0.0.1:8502. Still missing: guardrails, out-of-scope refusal, research analyst, compare agent, portfolio manager. The keyword router is built and the fundamental agent is reachable from the chat. Document search (`rag_search_documents`) was added to the fundamental agent on 2026-11-20. Added later on 2026-11-20: fundamentals database, tools and `agent_fundamental.py`. |
+| Disk | 250 GiB free (72% used) at 2026-11-19 08:36. Earlier that day it was 18 GiB. The vector store needs 5 to 14 GB, so it fits. Recheck before heavy steps. |
+| `project-code/` | **Built and tested (293 tests pass at 2026-11-21 00:20; the list below is from 2026-11-20 11:50 and the first row of this table adds the newer files `chat_store.py`, `tokenomics.py`, `agent_research_analyst.py`, `ui_shot.py`):** `router.py` (keyword router, plain code), `config.py`, `providers.py`, `model_settings.py`, `gateway.py`, `prices_db.py`, `indicators.py`, `market_data.py`, `mcp_market_data.py` (10 tools), `mcp_client.py`, `budget.py`, `agent_technical.py` (LangChain `@tool` + LangGraph `ToolNode`, tools served by the MCP server; subclassable), **`fundamentals_db.py`, `fundamentals.py`, `mcp_fundamentals.py` (8 tools, incl. `rag_search_documents`), `agent_fundamental.py` (`FundamentalAgent`, built 2026-11-20, tested live on `gemma4:12b`)**, `rag_chunker.py`, `rag_store.py`, `rag_build.py`, `ui_app.py` and `app_ui.py` (web app). Still a stub: `agent_portfolio_manager.py` (`agent_research_analyst.py` is built). **The chat routes between the technical and fundamental agents** (`ui_app.answer()`); annual-report, transcript and presentation questions go to `agent_fundamental`, which searches the PDFs with `rag_search_documents` and cites file and page. Scratch scripts (not imported by the app): `rag_check.py`, `rag_check2.py`, `ui_smoke.py`, `live_models.py`, `live_fundamental.py`, `live_chat.py`, `_probe.py`. Plus `requirements.txt` and a working `.venv` (Python 3.12). |
+| Fundamentals data | `project-db/fundamentals.duckdb`: 49 stocks, 20,747 values (SBILIFE has no workbook). Banks, finance companies and insurers get a warning and no industrial ratios. Units are not stated in the workbooks (probably Rs crore). Rebuild: `bin/run_py.sh fundamentals_db.py` (old file kept under a dated name). |
+| Chat model | **`gemma4:12b` (think off) is the chat default, decided 2026-11-19.** In live tests `mistral:7b` and `phi4-mini` did not call the tools; `gemma4:12b` and `gemma4:e4b` did, with correct numbers. Router and summary stay on `mistral:7b` (router untested). On EC2 CPU instances `gemma4:12b` will be slow: test `gemma4:e4b` there. |
+| Provider adapters | Tested with mocked HTTP only. Ollama was verified live on 18 Nov; the OpenAI-compatible and Hugging Face adapters have NOT been run against the real services yet. |
+| `bin/` | Start and stop scripts for the app and Ollama; `run_py.sh`; `rag_build.sh`, `rag_build_bg.sh`, `rag_build_stop.sh`. The app now uses **port 8502** (set in `bin/_common.sh`, override with `ARPM_PORT`). `rag_build_bg.sh` and `start_app.sh` start their process in its own session (`perl POSIX::setsid`) so it survives the end of a tool call. |
+
+### Leftovers inside `screener-document-download/` that conflict with the layout (KEEP: the no-delete rule applies)
+| Item | State |
+|---|---|
+| `agentic_research_portfolio_maker/` | Empty packages plus `config.py`. **Superseded** by `project-code/`. Leave it. Do not import from it. Its `PROJECT_ROOT` points at the downloader folder. |
+| `.venv/` (475 MB) | **Superseded** by `project-code/.venv`. Leave it. Its `activate` script points at the old path `/Users/sangram.dash2/Downloads/screener-document-download/.venv`, so it does not work. Do not use it. |
+| `requirements.txt` | **Superseded** by `project-code/requirements.txt`. Leave it. |
+
+## Architecture (v2, summary)
+- Streamlit app: Chat tab and Admin tab. The Admin tab is no longer read-only: it also holds the **Model settings** panel (see below).
+- Guardrails in plain code before the router, and again inside the portfolio MCP tools.
+- Prompt enhancer (slim, added 2026-11-19): plain-code name and date resolution, one LLM call only for follow-ups that lack a symbol, clarify instead of guessing. No generic LLM rewriting.
+- LangGraph router (one LLM call): `technical | fundamental | research | portfolio | both | out_of_scope`, then a synthesizer with citations. "Research view" and "should I invest" questions go to the research analyst.
+- Agents and MCP servers: technical -> `market-data` (DuckDB over price CSVs); fundamental -> `fundamentals` (Excel in DuckDB + `rag_search_documents` RAG over PDFs in Chroma); portfolio manager -> `portfolio` (SQLite for saved portfolios).
+- **Agent call chain (decided 2026-11-19):** `agent_portfolio_manager` -> `agent_research_analyst` -> `agent_technical` / `agent_fundamental`, with these rules to keep it fast and reliable on local models:
+  1. Split the analyst into a **scorecard** (momentum, quality, valuation, risk; computed by code, no LLM, cached per stock per data date; `scorecard.py`) and a **research note** (LLM writes prose around the code-computed numbers).
+  2. The portfolio manager screens all 50 stocks with the cheap scorecard and asks the analyst for a full note only for the final 4 to 6 picks, and only if the user wants it.
+  3. The portfolio manager calls `mcp_portfolio` and `mcp_market_data` tools directly for weights, risk, correlation, backtest and rebalancing. These are code, not analysis.
+  4. The analyst calls `agent_technical` / `agent_fundamental` only when LLM help is needed (for example transcript questions) and calls tools directly for plain numbers.
+  5. Maximum depth is 3 levels. Each child call gets a share of the parent's step and token budget (G8). The gateway logs a parent call ID so the Admin tab can show the call tree.
+  6. A full note takes about 1 to 3 minutes on a local model. Show progress in the chat. Word the verdict as evidence for and against, not buy or sell (G7 disclaimer applies).
+- AI gateway (built): every model call (chat, embeddings, judge) passes through `gateway.py`. Callers name a **role** (`chat`, `router`, `embedding`, `summary`, `judge`), never a provider. The gateway reads the saved settings on every call, picks the adapter, retries once, and writes one usage row. **Switching between local Ollama (Mac or EC2), Hugging Face and an external API such as the course (UpGrad) API is a settings change in the Admin tab, with no change in agents or RAG code.** `tests/test_architecture_rules.py` fails if any file other than `providers.py` imports a model SDK or calls a model URL (`providers.vN.py` backups are allowed).
+  - **Tokenomics (built 2026-11-20/21, Part 1):** each usage row also holds `cost_in`, `cost_out`, `cost_total`, `cost_known`. Rates are stored per provider and model in the `rates` table of `settings.sqlite` (set with `set_rate`, audited). Local providers with no rate cost 0; an external provider with no rate is "unknown", never guessed, and **no rate has been entered yet**. A `cost_cap` setting (`{"daily": None}`) blocks **paid** calls once the day's spend reaches it; local calls are never blocked. `gateway.summary(by)` groups by day, role, model, agent or provider. `tokenomics.what_if` and `tokenomics.call_tree` are plain functions. The Admin Tokenomics tab (Part 2) and Langfuse (Part 3) are not built.
+- Databases (all in `project-db/`): DuckDB for prices and financials (read-mostly, opened read-only by the app, rebuilt by a loader), SQLite for usage log, settings, audit and saved portfolios (many small writes), Chroma for document vectors. MySQL or PostgreSQL can be added later in the same folder without moving code.
+- AI gateway: every Ollama call (chat and embeddings) passes through one wrapper that counts tokens, times calls, enforces budgets and writes the usage log.
+- Default models via Ollama: chat `gemma4:12b` (about 18.5 tok/s, `think=False`), router and summary `mistral:7b` (about 25 tok/s), judge `gemma4:12b`, embeddings `nomic-embed-text` (768 dims).
+- Tool calling (built): each agent declares its tools with LangChain `@tool`. The tool body only calls the MCP server, which owns the data and the maths. LangGraph `ToolNode` runs them and checks arguments. The agent sends tool definitions to the gateway (role `chat`) and reads tool calls from the reply. An answer with no tool call is rejected once, then replaced by "no tool data", so numbers always come from tools. One `Budget` object per request is shared by every agent in the chain.
+
+### Model settings in the Admin tab (requested 2026-11-19)
+The user wants to change models from the app, next to the chat. Settings are stored in SQLite (`project-db/settings.sqlite`, with an audit table: who, when, old and new value) and read by the gateway on every call. Each **role** has its own provider and model:
+
+| Role | What it does | Default |
+|---|---|---|
+| Chat / agents | Agents and synthesizer | Ollama `gemma4:12b` (think off) |
+| Router | Picks the route | Ollama `mistral:7b` |
+| Embedding | Turns chunks and queries into vectors | Ollama `nomic-embed-text` |
+| Retrieval | Search settings: top-k, filters, optional reranker | top-k 8, no reranker |
+| Summary | Summarizes retrieved passages and long documents | Ollama `mistral:7b` |
+| LLM as judge | Scores answers for evaluation (groundedness, relevance, citation check) | Ollama `gemma4:12b` |
+| Chunking | Strategy only: size, overlap, split by page or section | 1000 characters, 15% overlap |
+
+Providers (choose per role): **local Ollama**, **Hugging Face**, and an **external OpenAI-compatible API** with base URL and API key.
+
+**Why it exists (user, 2026-11-19):** this is the final project for the UpGrad IIT KGP Agentic and Gen AI PGP Certificate. UpGrad may require the RAG embedding and retrieval to be rebuilt on **their API**, so that must be a switch in the Admin tab, next to the current local option. Later, on EC2 (m6i, m7i or m8i), the user must be able to switch between **Ollama on the EC2 machine** and **Hugging Face** with no code change in agents or RAG. That is the purpose of the AI gateway.
+
+Status: the "external API" provider is a generic OpenAI-compatible adapter (`openai_compat`). **UpGrad's real API format is not known yet.** If it is OpenAI-compatible, only the base URL, model names and key variable need entering in the Admin tab. If not, one new class in `providers.py` is the only code change. Get the API documentation from UpGrad and test with it before relying on it.
+
+EC2 note: m6i, m7i and m8i are CPU-only instances (no GPU). Ollama on them will run 7B models slowly (expect a few tokens per second, not the Mac's 25). Hugging Face (hosted) or a GPU instance (g5, g6) is the faster choice for chat. This is a reason to keep the switch dynamic. These speed statements are general expectations, not measured on this project.
+
+Rules and risks for this feature:
+- **"Chunking model" is a strategy, not a model.** `nomic-embed-text` is the *embedding* model. Chunk size and splitting are separate settings. Changing either one means the stored vectors no longer match.
+- **Changing the embedding model requires a full re-index.** This is the main consequence of switching RAG to UpGrad's embeddings. Vector sizes differ (nomic is 768). `SettingsStore.embedding_collection()` already returns a different collection name for each provider, model and chunking, so old and new vectors never mix. Use one Chroma collection per embedding model and chunk setting (name includes both), keep the old one until the new one is built, and switch queries only when it is complete. Re-embedding Tiers 1 to 3 takes about 1.3 to 1.6 hours locally. Show a time estimate and ask for confirmation first.
+- **External providers break the fully-local rule.** Document text, questions and answers would leave the machine. The Admin tab must show a clear warning, and each external role needs an explicit opt-in. Default stays local.
+- **API keys:** read from environment variables or `config/arpm.env` (mode 600), never stored in SQLite, never logged, never shown after entry (show only the last 4 characters).
+- **Model allow-list and budgets still apply** to every provider. External calls have a real per-token cost, so the what-if cost table becomes a real cost table, with rates entered by the user.
+- **Access:** only the admin password can change settings. Every change is written to the audit table. Invalid settings (unknown model, failed test call) are rejected, and a "Test connection" button runs one small call before saving.
+- **Judge independence:** the judge model should differ from the model that wrote the answer. Warn if they are the same.
+- **Token counts differ by provider.** Ollama returns `prompt_eval_count` and `eval_count`. HF and OpenAI-style APIs report usage differently. The gateway normalizes these into one log row and marks estimated counts.
+- Guardrails: G1 Nifty 50 only (block); G2 7+ stocks (block); G3 fewer than 4 (block, assumed); G4 weights sum to 100% and 5% to 40% each (block, assumed); G5 over 50% in one sector (warn); G6 under 1 year of prices (warn); G7 disclaimer, data date and unadjusted-price note; G8 per-question limits on tool calls, steps, tokens.
+- RAG tiers (measured 2026-11-20, see `RAG_CONTEXT.md`): 1 = all transcripts (21,138 pages); 2 = latest N annual reports per stock (60,103 pages at N=3, 96,751 at N=5); 3 = latest 5 presentations (11,387 pages). Tiers 1 to 3 with 5 annual reports: 129,276 pages, about 465,000 chunks, about 3 h 20 m on the M1 Pro. Excel is not embedded. The earlier plan's 222k chunks and 1.3 to 1.6 h were too low for this data.
+
+## Build phases
+1. **Phase 1 (done):** `config.py` + `config/paths.json`; gateway, providers, settings; DuckDB price layer; indicators; `market-data` MCP server (10 tools); MCP client; budgets; technical agent, checked live against Ollama. Web app (Chat and Admin tabs) built 2026-11-20.
+2. **Fundamentals (done 2026-11-20):** Excel to DuckDB loader, `Fundamentals` class, `fundamentals` MCP server (8 tools, the 8th is `rag_search_documents`), `agent_fundamental.py`. Reachable from the chat through the keyword router since 01:30. 160 tests pass in total.
+3. Document RAG tiers 1, 2, 3: **done 2026-11-20.** Full index built (528,991 chunks); `rag_search_documents` is a tool of `agent_fundamental`.
+4. Guardrails, prompt enhancer, LLM router. (Chat tab and keyword router are built. Langfuse: optional add-on, see open decision 6.)
+5. Research analyst: **`agent_research_analyst.py` BUILT 2026-11-21** (splits a question, runs the technical and fundamental agents on one budget, merges with number and citation checks; used for the `both` route). `scorecard.py` (code ranking for portfolios) is not built.
+6. Portfolio manager: `agent_portfolio_manager.py` and `mcp_portfolio.py`; uses scorecards, then analyst notes for final picks.
+7. Admin tab: usage and guardrail charts, plus **Model settings** (providers, per-role models, chunking, re-index with confirmation, audit log).
+
+The provider layer (`providers.py`, with Ollama first) and the settings table are built in Phase 1 inside the gateway, so no later phase has to change how models are called. Hugging Face and the external adapter are added once the user answers the provider question.
+
+## Open decisions (defaults in brackets)
+1. Model for chat [decided: `gemma4:12b`, think off; `mistral:7b` did not call tools]. Router and summary [`mistral:7b`, untested for routing].
+2. Minimum portfolio size [block fewer than 4].
+3. Weight limits [5% min, 40% max].
+4. Admin tab access [password from env var].
+5. Logging [question previews only; full text opt-in].
+6. Langfuse [**revised 2026-11-21:** the user pointed out Langfuse can run locally (LangSmith cannot). Decision on the user's blanket approval: the base is the app's own usage log and Admin view. Langfuse is an **optional add-on, off unless keys are set** in `config/arpm.env`, traced inside `gateway.py` only, with a privacy switch. Self-hosted Langfuse needs web, worker, Postgres, ClickHouse, Redis and S3-style storage (no plain-process install), so the routes are Langfuse Cloud or a Compose box elsewhere. SDK API not yet checked].
+9. UpGrad API [needed from the user: API documentation or an example request, base URL, model names, key. Generic OpenAI-compatible adapter built meanwhile].
+10. Hugging Face mode [built as the hosted Inference API with a token (`HF_TOKEN`). A local Hugging Face model is not built; ask if wanted. Local needs `transformers` and 2 to 10 GB of disk per model].
+11. Allow external providers at all [off by default; per-role opt-in with a warning].
+7. Fill data gaps first with `python3 code/download_screener_docs.py --index Nifty50 --force` [yes, in background; INFY PDFs may stay 403].
+8. Containers [not yet; build in venv first, keep Ollama on the Mac for the GPU].
+12. `config/setup.sh` should also pull `gemma4:12b` (7.7 GB) so a fresh VM has the chat default [waiting on the user].
+13. ~~Delete the old `agentic_research_portfolio_maker/`, `.venv/` and `requirements.txt` in `screener-document-download/`~~ [resolved 2026-11-19: do not delete anything. They stay, marked superseded].
+14. ~~Merge the missing areas into the architecture HTML~~ [done 2026-11-21: page rewritten 20 Nov, updated 21 Nov evening with the analyst, tokenomics and 293 tests; copies kept as `.v1.html` and `.v2.html`].
+
+## Gotchas
+- `mcp==2.3.0` is the v2 SDK: `from mcp.server.mcpserver import MCPServer`, `@mcp.tool()`. `mcp.server.fastmcp` does not exist. On the client side, `Tool.input_schema` and `CallToolResult.is_error` are snake_case (not `inputSchema`, `isError`).
+- Run project scripts with `bin/run_py.sh <script.py>` so `config/arpm.env` (for `OLLAMA_HOST`) is loaded. Plain `.venv/bin/python` does not load it.
+- Local models differ on tool calling. Check the `tools` capability in `ollama show` and then test live: `mistral:7b` lists it but did not use it here.
+- LangGraph `ToolNode` cannot be invoked on its own (needs a graph config). Test it inside a graph. Unknown tools and missing arguments come back as error messages, not exceptions.
+- `sed -i` on macOS needs an extension argument. Use the edit tools instead.
+- Price files: dates are text like `13-Nov-2026` (`strptime(trim(DATE1), '%d-%b-%Y')`); header names have a leading space after each comma, so strip them. Skip any symbol containing a space (the `NIFTY 50` index row).
+- Chroma collection names need at least 3 characters.
+- A background job started from a tool call dies when the call ends unless it gets its own session. `bin/rag_build_bg.sh` and `bin/start_app.sh` use `perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV'` (macOS has no `setsid` command).
+- MCP tools must be defined **above** the `if __name__ == "__main__"` block in `mcp_market_data.py`, or the server starts without them.
+- The chat agent has only the tools it is given. A question outside them (documents, financials) is answered with the nearest price tool unless the agent refuses. See pending 2 in `STATUS_AND_PROGRESS.md`.
+- **Parallel tool calls:** a model can ask for several tools in one turn, and LangGraph runs them in parallel threads. One DuckDB connection serves one call at a time, so both MCP servers wrap each tool call in a lock. Any new MCP server that shares a connection needs the same.
+- `fsa_compute_growth` with `years=N` returns N-year growth per row (not year-on-year) plus `cagr_pct` over the latest N years. The tool description says so; keep it, or the model reports the rows as year-on-year.
+- `agent_fundamental.py` reuses the technical agent loop by subclassing `TechnicalAgent` (class attributes `agent_name`, `system_prompt`, `reminder`, `no_data_answer`; hook `_make_tools()`). A later agent should do the same.
+- Architecture test: do not write `project-db`, `screener-document-download` or `/Users/` in any `project-code/*.py` line (docstrings included). Only `#` comment lines are skipped.
+- Workbook for `M&M` is `Financials_M_M.xlsx`. The `financials_file` pattern assumes `Financials_{symbol}.xlsx`.
+- Bank, insurer and finance workbooks use the same row labels as industrial companies, but the meaning differs (`Sales` is total income, `Interest` is an expense, `Borrowings` includes deposits). Do not compute industrial ratios for them without a warning.
+- Run long Ollama jobs in the background with `nohup` and poll the log. Do not run two models at once.
+- After a cancelled tool call, check what was actually written before assuming it applied.
+- Do not open `screener-document-download/secret/`. Treat it as private.
+- **Restart the app after every change to code or settings** (`bin/stop_app.sh && bin/start_app.sh`). Streamlit caches objects (settings store, gateway, agents). After `SettingsStore.get_rate` was added, the running app kept the old object and every chat failed with "'SettingsStore' object has no attribute 'get_rate'" (2026-11-20, seen in a user screenshot).
+- **Do not send test messages to the real chat history** (`project-db/chats.sqlite`): they could never be removed. `live_chat.py` does not write to it. `ui_shot.py` should be run without a question.
+- Headless Chrome `--screenshot` captures only Streamlit's loading skeleton. Use `project-code/ui_shot.py` (DevTools protocol; env `ARPM_CHROME`, `ARPM_URL`, `ARPM_WAIT`, `ARPM_CLICK`, `ARPM_TOP`).
+- The citation and number checks in the analyst ignore small whole numbers, so invented "p. 1" style citations needed their own check (`strip_unsupported_citations`).
+- Short document queries score below the 0.65 cutoff (one word "attrition" returned nothing; "employee attrition rate and hiring" scored 0.74). Planned fix: say in the `rag_search_documents` description that the query must be a full descriptive phrase.
+- Background jobs and the full test run: start with `perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV'`, write to a log, then `sleep` and read the log. macOS has no `timeout` or `setsid`; `sed -i` needs `''`.
+- Tool lesson for assistants: `update_todo_list` rejects any update that drops an item it already holds as completed. Multi-part file edits are safest as a small Python script with `assert old in s`.
+
+## Detail files
+- Downloader context: `../screener-document-download/context/CONTEXT.md`
+- Downloader progress log: `../screener-document-download/context/PROGRESS.md`
+- Agent plan and decisions: `../screener-document-download/context/AGENT_PLAN.md`
+- Handoff notes (older, written before the parent folder existed): `../screener-document-download/context/START_HERE_NEXT_SESSION.md`
+- Visual plan v2: `../screener-document-download/html/IITKGP-Agentic-NIFTY50-Plan.html`
+- Earlier blueprint v1 (uses the old name "StockWood"; superseded): `../screener-document-download/html/IITKGP-AgenticStockReserach.html`
+
+## Change log
+- 2026-11-21 (00:30 IST): **Context saved.** Everything since 2026-11-20 14:00 recorded in `STATUS_AND_PROGRESS.md` (new section 1b and a rewritten pending list). Built in this period: ChatGPT-style web app with saved conversations (`chat_store.py`, `chats.sqlite`); router additions (conference-call wordings, capex, guidance, order book, attrition, a `RESEARCH` list; `test_router.py` 62 tests); **research analyst** (`agent_research_analyst.py`, 27 tests, used for the `both` route, live times 59 to 136 s on `gemma4:12b`); **tokenomics Part 1** (cost in the gateway, rates, daily cost cap, `tokenomics.py`, cost in `budget.py`; 26 tests); architecture HTML rewritten (15 sections, still lacks the analyst and tokenomics); `ui_shot.py` screenshot tool; `pytest.ini`. Fixed: invented citations and an ignored buy question in the analyst's answer; the stale-cache bug. Decided: Langfuse as an optional add-on (open decision 6). Answered: EC2 sizing (16 GB floor, 8 vCPU, 50 GB gp3, try m7i.xlarge then m7i.2xlarge; estimates, not measured on EC2) and which model runs at each step. **293 tests pass.** Next: Admin Tokenomics tab, then optional Langfuse tracing. Old versions kept: `STATUS_AND_PROGRESS.v7.md`, `GLOBAL_CONTEXT.v6.md`, `PROMPT_CONTEXT.v6.md`, `RAG_CONTEXT.v7.md`.
+- 2026-11-20 (13:55): **Document-search tool renamed `search_documents` to `rag_search_documents`** (prefix `rag_`, same idea as `fsa_`), at the user's request. Changed in `mcp_fundamentals.py`, `agent_fundamental.py` (wrapper, prompt), docstrings, tests and docs. The `Documents.search` class method keeps its name. The fundamentals server now has `fsa_*` (7 tools) and `rag_*` (1 tool). 181 tests pass. Older entries below still use the old name. Old versions kept: `STATUS_AND_PROGRESS.v6.md`, `GLOBAL_CONTEXT.v5.md`, `RAG_CONTEXT.v6.md`, `PROMPT_CONTEXT.v5.md`.
+- 2026-11-20 (13:40): **Financial-statement tools renamed with the prefix `fsa_`** (financial statement analysis), at the user's request: `fsa_list_line_items`, `fsa_get_financials`, `fsa_get_quarterly`, `fsa_compute_growth`, `fsa_compute_ratios`, `fsa_get_valuation`, `fsa_coverage`. `search_documents` keeps its name (it searches PDFs, not statements). Only the MCP tool names and the agent wrappers changed; the `Fundamentals` class methods keep their names. Prompt, tests and docs updated. Router: added "management say(s)" and "management comment(s)" to the documents words ("What did TCS management say about attrition?" had gone to the technical agent). 181 tests pass. Older entries below still use the old tool names. Old versions kept: `STATUS_AND_PROGRESS.v5.md`, `GLOBAL_CONTEXT.v4.md`, `RAG_CONTEXT.v5.md`, `PROMPT_CONTEXT.v4.md`.
+- 2026-11-20 (11:50): **Document search connected to the fundamental agent.** User decision: one fundamental agent for Excel numbers (DuckDB) and PDF text (Chroma). Added `documents.py`, tool `search_documents` (8 tools in `mcp_fundamentals.py`), prompt rules (cite file and page, no numbers from passages, say when a stock has no documents), `documents` route now runs `agent_fundamental`. Router rule for "compare / vs / versus / which is better" with no domain word runs both agents (user's screenshot: "compare infosys and tcs" had gone to the technical agent only). Fixed `mcp_client.py`: the MCP server process now inherits the app's environment (it had no `OLLAMA_HOST`, so every search failed). Cutoff 0.65. Full RAG build finished at 04:16 (1,477 files, 0 failed, 528,991 chunks). 179 tests pass; app restarted on 8502. Old versions kept: `STATUS_AND_PROGRESS.v4.md`, `GLOBAL_CONTEXT.v3.md`, `RAG_CONTEXT.v4.md`, `PROMPT_CONTEXT.v3.md`.
+- 2026-11-20 (01:40): **Fundamental agent connected to the chat.** The user's screenshot showed "check financial statement of infosys" answered by the technical agent ("I do not have access to financial statements"): the fundamental agent existed but `ui_app.py` built only the technical agent. Added `router.py` (keyword routes `technical`, `fundamental`, `both`, `documents`, 19 tests), replaced `get_agent()` with `get_agents()` and `answer()` in `ui_app.py`, added the `focus` argument to `TechnicalAgent.run`, added 4 UI tests (160 tests pass), restarted the app on 8502. Annual-report questions now get a fixed "not connected" reply instead of price returns. Prompt fix: P/E is a multiple, not a percentage (HDFCBANK showed "16.55%"). **Open:** mixed price-and-financial questions are unreliable (the fundamental half often says "no tool data"; 3 of 8 probes called a tool); fix not decided. Lesson: when an agent is built, connect it to the chat in the same step and test the real question. New scratch files `live_chat.py` and `_probe.py` (not deleted). RAG build 35% at 01:33, 509 files done, 0 failed. Old versions kept: `STATUS_AND_PROGRESS.v3.md`, `GLOBAL_CONTEXT.v2.md`, `PROMPT_CONTEXT.v2.md`, `RAG_CONTEXT.v3.md`.
+- 2026-11-20 (01:15): **Fundamental agent built.** Added `fundamentals_db.py` (49 workbooks, 20,747 values, `fundamentals.duckdb`), `fundamentals.py`, `mcp_fundamentals.py` (7 tools), `agent_fundamental.py` and `live_fundamental.py`. Refactored `agent_technical.py` into a subclassable class (old file kept as `agent_technical.v1.py`). Found and fixed two bugs by live use: parallel tool calls collided on one DuckDB connection (lock added to both MCP servers), and the model read N-year growth rows as year-on-year (tool description and prompt changed). Fixed the architecture test (two docstrings named `project-db`). 138 tests pass. Full RAG build still running (24% at 01:06). `STATUS_AND_PROGRESS.md` rewritten (old versions `.v1.md`, `.v2.md`); `RAG_CONTEXT.md` and this file edited in place (old versions `RAG_CONTEXT.v2.md`, `GLOBAL_CONTEXT.v1.md`).
+
+- 2026-11-20 (00:25): **RAG built, web app built, full document index build started.** Added `rag_chunker.py`, `rag_store.py`, `rag_build.py`, `bin/rag_build*.sh` (resumable, logged with progress and ETA, run records in `project-db/rag_ingest.sqlite`), `ui_app.py` and `app_ui.py` (Chat tab for technical questions, Admin tab with models, providers, chunking, index status, usage and change log, locked until `ARPM_ADMIN_PASSWORD` is set). Port changed to 8502. Added tool `list_stocks` after the agent answered "which stocks are available" with top movers. Found the chat cannot search documents (it answered a TCS annual-report question with price returns); not fixed yet. Measured Excel layout for the fundamental agent: 49 workbooks (only SBILIFE missing, M&M exists as `Financials_M_M.xlsx`), one layout, banks and insurers use the same labels with different meaning. 106 tests pass. `STATUS_AND_PROGRESS.md` and `RAG_CONTEXT.md` rewritten; old versions kept as `.v1.md`. `app_ui.py` placeholder kept as `project-code/app_ui_placeholder_v0.txt`. `requirements.txt` now has `pymupdf`.
+- 2026-11-19 (late): **No-delete rule added by the user.** Nothing in this folder is deleted; newer versions are added beside old ones; superseded items are marked, not removed. The pending decision to delete the old `screener-document-download/` leftovers is cancelled. Three places in current code still overwrite or remove files and are listed in the rule section for a decision. Added `PROMPT_CONTEXT.md`.
+- 2026-11-19 (late): Added `RAG_CONTEXT.md`. Decided: Excel financials go to DuckDB tools, not the vector store; chunking must be changeable through a rebuild script, each setting in its own collection (old ones kept). PyMuPDF installed in the venv (not yet in `requirements.txt`). No RAG code or vector store exists yet.
+- 2026-11-19 (night): Phase 1 built: `prices_db.py`, `indicators.py`, `market_data.py`, `mcp_market_data.py`, `mcp_client.py`, `budget.py`, `agent_technical.py` (tools declared with LangChain `@tool`, run by `ToolNode`, served by MCP). Compared four local models live and set the chat default to `gemma4:12b`. Corrected price counts (55,167 rows after de-duplication; TMPV 260 days). 67 tests pass. Added `STATUS_AND_PROGRESS.md` and `bin/run_py.sh`; created `config/arpm.env` from the example.
+- 2026-11-19 (evening): Added `config/paths.json` as the single source of all paths; moved databases to a new `project-db/` and PIDs/logs to `runtime/`; `project-code/` is code only. Built and tested (21 tests) `config.py`, `providers.py`, `model_settings.py`, `gateway.py`. Clarified UpGrad: course provider for the final project; EC2 switch between Ollama and Hugging Face.
+- 2026-11-19 (later): Renamed `agent_portfolio.py` to `agent_portfolio_manager.py`; added `agent_research_analyst.py`; decided the agent call chain with a code scorecard; added Model settings (providers and per-role models) to the Admin tab; phases renumbered to 7; Langfuse dropped; `bin/` start and stop scripts and the Python 3.12 venv created.
+- 2026-11-19: Parent folder created; `screener-document-download/` moved into it; `project-code/` and `global-context/` created. Context files read and summarized here.

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agentic Research and Portfolio Maker: status and work plan (Nifty 50)</title>
+<style>
+  body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;font-size:14.5px;line-height:1.6;color:#1f2328;background:#fff;margin:0}
+  main{max-width:960px;margin:0 auto;padding:32px 24px 48px}
+  h1{font-size:26px;margin:0 0 4px}
+  h2{font-size:19px;margin:36px 0 10px;padding-top:8px;border-top:1px solid #e5e7eb}
+  h3{font-size:15px;margin:20px 0 6px}
+  p{margin:6px 0}
+  .muted{color:#57606a}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.5px}
+  th,td{border:1px solid #e5e7eb;padding:6px 9px;text-align:left;vertical-align:top}
+  th{background:#f7f8fa}
+  code{background:#f7f8fa;border:1px solid #e5e7eb;border-radius:3px;padding:0 4px;font-size:12.5px}
+  .kpi{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+  .kpi div{flex:1 1 140px;background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:10px 12px}
+  .kpi b{display:block;font-size:20px}
+  .kpi span{color:#57606a;font-size:12.5px}
+  .tag{display:inline-block;font-size:11.5px;border:1px solid #e5e7eb;border-radius:3px;padding:0 6px;background:#f7f8fa}
+  .done{color:#1a7f37;border-color:#1a7f37}
+  .todo{color:#9a6700;border-color:#9a6700}
+  .risk{color:#cf222e;border-color:#cf222e}
+  .box{border:1px solid #e5e7eb;background:#f7f8fa;border-radius:4px;padding:8px 12px;margin:6px 0}
+  .layer{border:1px solid #3b82d4;border-radius:4px;padding:8px 12px;margin:6px 0;background:#fff}
+  .layer.alt{border-color:#7c5cd8}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row>div{flex:1 1 200px;border:1px solid #e5e7eb;background:#f7f8fa;border-radius:4px;padding:8px 10px;font-size:13px}
+  .arrow{text-align:center;color:#57606a;margin:0;line-height:1.2}
+  .bar{height:14px;background:#3b82d4;border-radius:2px}
+  .bar.alt{background:#7c5cd8}
+  .barrow{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:13px}
+  .barrow .lbl{width:210px;flex:none}
+  .barrow .val{width:90px;flex:none;color:#57606a}
+  ul{margin:6px 0 6px 20px;padding:0}
+  footer{margin-top:40px;padding-top:10px;border-top:1px solid #e5e7eb;text-align:center;color:#57606a;font-size:12px}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Agentic Research and Portfolio Maker</h1>
+<p class="muted">Project status and work plan, based on the Nifty 50 data on disk. Written 19 Nov 2026, updated the same day. Source: files in <code>screener-document-download/</code> as measured on 18 to 19 Nov 2026.</p>
+
+<div class="kpi">
+  <div><b>50</b><span>stocks in scope (Nifty 50 only)</span></div>
+  <div><b>57,767</b><span>price rows, 23 Mar 2022 to 13 Nov 2026</span></div>
+  <div><b>3,406</b><span>PDFs (about 288k pages)</span></div>
+  <div><b>49 / 50</b><span>Excel financial workbooks</span></div>
+  <div><b>0</b><span>lines of app code built</span></div>
+</div>
+
+<h2>1. Where we stand</h2>
+<table>
+<tr><th>Area</th><th>State</th><th>Detail</th></tr>
+<tr><td>Downloaders (Screener, NSE index, NSE bhavcopy)</td><td><span class="tag done">done</span></td><td>233 unit tests passed on 18 Nov, before the folder move. Supports <code>--index Nifty50</code>, <code>--stock</code>, <code>--workers</code>.</td></tr>
+<tr><td>Price data</td><td><span class="tag done">done</span></td><td>50 per-stock CSVs in <code>data_stock_bhavcopy_nifty50/</code>, built from 356 MB of daily bhavcopy files. EQ series only.</td></tr>
+<tr><td>Documents and financials</td><td><span class="tag todo">gaps</span></td><td>15 GB in <code>data/</code>. See section 2 for the gaps.</td></tr>
+<tr><td>Folder layout</td><td><span class="tag done">done</span></td><td>Parent folder with <code>screener-document-download/</code>, <code>project-code/</code>, <code>global-context/</code>, <code>global-architecture/</code>.</td></tr>
+<tr><td>App code (<code>project-code/</code>)</td><td><span class="tag todo">not started</span></td><td>Built and tested (21 tests): <code>config.py</code> (reads <code>config/paths.json</code>), <code>providers.py</code>, <code>model_settings.py</code>, <code>gateway.py</code>. Four agent files are still stubs. Python 3.12 <code>.venv</code> works and <code>bin/</code> scripts are tested. Layout: <code>project-code/</code> (code only), <code>project-db/</code> (all databases), <code>runtime/</code> (PIDs, logs). An old stub skeleton and <code>.venv</code> still sit inside the downloader folder.</td></tr>
+<tr><td>Architecture and plan</td><td><span class="tag done">drafted</span></td><td>v2 plan exists, now with a prompt enhancer, a research analyst agent and Model settings. Several decisions still use assumed defaults (section 7).</td></tr>
+<tr><td>Disk space</td><td><span class="tag done">ok</span></td><td>250 GiB free (72% used) on 19 Nov 2026, up from 18 GiB earlier that day.</td></tr>
+</table>
+
+<h2>2. Data available for the Nifty 50</h2>
+
+<h3>2.1 Inventory</h3>
+<table>
+<tr><th>Source</th><th>Location (under <code>data_root</code> in <code>config/paths.json</code>)</th><th>Content</th><th>Used by</th></tr>
+<tr><td>Prices</td><td><code>data_stock_bhavcopy_nifty50/&lt;SYMBOL&gt;.csv</code></td><td>Daily open, high, low, close, volume, turnover, trades, delivery quantity and percent. 7.2 MB in total.</td><td>Technical and portfolio agents</td></tr>
+<tr><td>Financials</td><td><code>data/&lt;SYMBOL&gt;/Financials_&lt;SYMBOL&gt;.xlsx</code></td><td>Sheets: Profit &amp; Loss, Quarters, Balance Sheet, Cash Flow, Customization, Data Sheet. 49 of 50 stocks.</td><td>Fundamental and portfolio agents</td></tr>
+<tr><td>Annual reports</td><td><code>data/&lt;SYMBOL&gt;/Annual_Report_&lt;YEAR&gt;.pdf</code></td><td>667 PDFs, about 282 pages each. 27 further files are <code>.zip</code>.</td><td>RAG (Tier 2)</td></tr>
+<tr><td>Concall transcripts</td><td><code>data/&lt;SYMBOL&gt;/</code></td><td>999 PDFs, about 21 pages each.</td><td>RAG (Tier 1)</td></tr>
+<tr><td>Presentations</td><td><code>data/&lt;SYMBOL&gt;/PPT_*.pdf</code></td><td>1,740 PDFs, about 46 pages each.</td><td>RAG (Tier 3)</td></tr>
+<tr><td>Stock list and sector</td><td><code>Reference-Files/nifty-50.csv</code></td><td>Name, NSE code, ISIN, industry group, industry, and about 40 snapshot ratios (price, P/E, ROCE and others) as of 17 Nov 2026.</td><td>Guardrails G1 and G5, screens</td></tr>
+<tr><td>Index snapshot</td><td><code>data_nse_index/20261116/NIFTY_50.csv</code></td><td>50 constituents plus the index row, for one day only.</td><td>Alternative stock list</td></tr>
+</table>
+
+<h3>2.2 Text volume (drives RAG cost)</h3>
+<div class="barrow"><span class="lbl">Annual reports (667)</span><div class="bar" style="width:100%"></div><span class="val">about 188k pages</span></div>
+<div class="barrow"><span class="lbl">Presentations (1,740)</span><div class="bar alt" style="width:43%"></div><span class="val">about 80k pages</span></div>
+<div class="barrow"><span class="lbl">Transcripts (999)</span><div class="bar" style="width:11%"></div><span class="val">about 21k pages</span></div>
+<p class="muted">Page counts are from the earlier measurement (667 x 282, 1,740 x 46, 999 x 21). Annual reports are about 65% of all pages, so the choice of annual-report depth sets most of the cost.</p>
+
+<h3>2.3 Known gaps and data-quality issues</h3>
+<table>
+<tr><th>Issue</th><th>Effect</th><th>Action</th></tr>
+<tr><td>INFY has the Excel file only, no PDFs (infosys.com returns HTTP 403 to scripts)</td><td>No document answers for INFY</td><td><span class="tag todo">retry</span> Re-run <code>--index Nifty50 --force</code>. If still blocked, download by hand or mark INFY as "financials only".</td></tr>
+<tr><td>SBILIFE has no Excel</td><td>No structured financials for SBILIFE</td><td><span class="tag todo">retry</span> Same re-run. Insurers may use a different Screener layout.</td></tr>
+<tr><td>ITC and TRENT: no transcripts. BAJAJ-AUTO: no presentations</td><td>Smaller document coverage</td><td>Report in answers ("no transcript on file").</td></tr>
+<tr><td>BSE, JIOFIN, ETERNAL: only 3 to 5 annual reports</td><td>Short history (recent listings)</td><td>Expected. No action.</td></tr>
+<tr><td>Prices are not adjusted for splits, bonuses and demergers</td><td>Long-range returns, volatility and backtests can be wrong around corporate actions</td><td><span class="tag risk">risk</span> Detect large one-day jumps and flag them. Do not silently adjust. Show a caveat on every portfolio answer.</td></tr>
+<tr><td>Short price histories: TMPV 276 rows, ETERNAL 411, JIOFIN 825</td><td>Under 1 year for TMPV, which breaks risk metrics</td><td>Guardrail G6 warns.</td></tr>
+<tr><td>No Nifty 50 index price history, only a one-day snapshot</td><td>No true benchmark or beta</td><td>Use an equal-weight proxy of the 50 stocks. State this in answers. Optionally download the index history later.</td></tr>
+<tr><td>No point-in-time membership history</td><td>Back-tests carry survivorship bias</td><td>State the caveat. Keep each dated <code>data_nse_index/&lt;date&gt;/</code> snapshot from now on.</td></tr>
+<tr><td>Price CSV format: dates like <code>13-Nov-2026</code> as text, leading space in every header and value</td><td>Naive parsing fails</td><td>Trim headers and parse with <code>%d-%b-%Y</code> in the loader.</td></tr>
+<tr><td>Sector concentration: 5 Banks, 5 Automobiles, 4 Finance, 4 IT - Software out of 26 industry groups</td><td>Banks plus Finance is 9 of 50 names</td><td>Guardrail G5 warns above 50% in one group.</td></tr>
+</table>
+
+<h2>3. Target architecture</h2>
+<div class="layer"><b>Streamlit app</b>: Chat tab (answer, sources, data date, alerts) and Admin tab (tokens, speed, guardrail events, and <b>Model settings</b>: provider and model per role, chunking, re-index, audit log)</div>
+<p class="arrow">&#8595;</p>
+<div class="layer alt"><b>Guardrails</b> (plain code): Nifty 50 only, 4 to 6 stocks, weight limits, call and token budgets. Run before the router and again inside the portfolio tools.</div>
+<p class="arrow">&#8595;</p>
+<div class="layer"><b>Prompt enhancer</b> (<code>prompt_enhancer.py</code>, slim): resolves company names to Nifty 50 symbols and relative dates in plain code, rewrites follow-up questions with one short LLM call only when needed, and asks the user a clarifying question instead of guessing. No generic LLM rewriting. The original question stays visible.</div>
+<p class="arrow">&#8595;</p>
+<div class="layer"><b>LangGraph router</b> (one LLM call): technical | fundamental | research | portfolio | both | out of scope. Then a synthesizer that merges results and adds citations.</div>
+<p class="arrow">&#8595;</p>
+<div class="row">
+  <div><b>agent_portfolio_manager</b><br>weights, risk, backtest, rebalance. Screens with scorecards, calls the analyst for final picks.<br><span class="muted">MCP: portfolio, market-data</span></div>
+  <div><b>agent_research_analyst</b><br>research note and stock scorecard. Calls the two agents below only when it needs LLM help.<br><span class="muted">scorecard.py (code, cached)</span></div>
+</div>
+<p class="arrow">&#8595;</p>
+<div class="row">
+  <div><b>agent_technical</b><br>prices, returns, indicators, screens<br><span class="muted">MCP: market-data</span></div>
+  <div><b>agent_fundamental</b><br>financials, growth, ratios, document search<br><span class="muted">MCP: fundamentals</span></div>
+</div>
+<p class="box"><b>Call chain.</b> portfolio manager &#8594; research analyst &#8594; technical and fundamental agents. Maximum depth 3. Each child call gets a share of the parent's step and token budget. The gateway logs a parent call ID, so the Admin tab can show who called whom. Plain numbers always come straight from tools, not from nested LLM calls.</p>
+<p class="arrow">&#8595;</p>
+<div class="row">
+  <div><b>DuckDB (prices)</b><br>50 CSVs, 57,767 rows</div>
+  <div><b>DuckDB (financials) + Chroma (PDF vectors)</b><br>49 workbooks, PDF chunks</div>
+  <div><b>SQLite</b><br>saved portfolios, usage log</div>
+</div>
+<p class="arrow">&#8595;</p>
+<div class="layer alt"><b>AI gateway</b> (built, 21 tests pass): every model call (chat, embeddings, judge) passes here. Callers name a <b>role</b>, never a provider. The gateway reads the saved settings on every call, picks the provider, retries once, counts tokens, times each call and writes the usage log. <b>Switching provider is a setting, not a code change</b>, and a test fails if any file other than <code>providers.py</code> calls a model service.</div>
+<p class="arrow">&#8595;</p>
+<div class="row">
+  <div><b>Local Ollama</b> (default; Mac now, EC2 later)<br><code>mistral:7b</code> about 25 tok/s on this Mac, <code>gemma4:12b</code> about 18.5 tok/s, <code>nomic-embed-text</code> 768-dim. All installed.</div>
+  <div><b>Hugging Face</b> (built, mocked-HTTP tests only)<br>Hosted Inference API with <code>HF_TOKEN</code>. Off until enabled.</div>
+  <div><b>External API: UpGrad course API</b> (generic OpenAI-compatible adapter built)<br>Base URL, model names and key variable entered in the Admin tab. Off until enabled. Real API format still to be confirmed.</div>
+</div>
+
+<p class="box"><b>Principle.</b> Numbers come from SQL or Python tools, never from the model or from vector similarity. The vector store is used only for text passages, and every passage carries symbol, document type, period, page and file.</p>
+
+<h2>4. What needs to be done</h2>
+
+<h3>Code layout in <code>project-code/</code></h3>
+<p>Flat <code>.py</code> files, not directories. Each agent is one file named <code>agent_&lt;role&gt;.py</code>.</p>
+<table>
+<tr><th>File</th><th>Role</th><th>State</th></tr>
+<tr><td><code>agent_technical.py</code></td><td>Technical agent (prices, indicators)</td><td><span class="tag done">stub</span></td></tr>
+<tr><td><code>agent_fundamental.py</code></td><td>Fundamental agent (financials, document RAG)</td><td><span class="tag done">stub</span></td></tr>
+<tr><td><code>agent_research_analyst.py</code></td><td>Research analyst (note writer; calls technical and fundamental when needed)</td><td><span class="tag done">stub</span></td></tr>
+<tr><td><code>agent_portfolio_manager.py</code></td><td>Portfolio manager (build, risk, backtest, rebalance). Renamed from <code>agent_portfolio.py</code>.</td><td><span class="tag done">stub</span></td></tr>
+<tr><td><code>router.py</code>, <code>prompt_enhancer.py</code>, <code>guardrails.py</code>, <code>scorecard.py</code></td><td>Workflow nodes and code services (not agents, so no <code>agent_</code> prefix)</td><td><span class="tag todo">proposed</span></td></tr>
+<tr><td><code>gateway.py</code>, <code>providers.py</code>, <code>model_settings.py</code>, <code>config.py</code></td><td>AI gateway, provider adapters (Ollama, Hugging Face, external API), settings store with audit log, and the paths reader</td><td><span class="tag done">built, tested</span></td></tr>
+<tr><td><code>config/paths.json</code></td><td>Every path in one file. No path is written in code or scripts; a test enforces it.</td><td><span class="tag done">built, tested</span></td></tr>
+<tr><td><code>project-db/</code></td><td>All databases: Chroma, DuckDB, SQLite files; room for MySQL or PostgreSQL later</td><td><span class="tag done">folder ready</span></td></tr>
+<tr><td><code>mcp_market_data.py</code>, <code>mcp_fundamentals.py</code>, <code>mcp_portfolio.py</code>, <code>app_ui.py</code></td><td>MCP servers and Streamlit app</td><td><span class="tag todo">proposed</span></td></tr>
+</table>
+
+<h3>Phase 0: housekeeping before any code</h3>
+<table>
+<tr><th>#</th><th>Task</th><th>Output</th></tr>
+<tr><td>0.1</td><td>Move <code>agentic_research_portfolio_maker/</code> and <code>requirements.txt</code> from the downloader folder into <code>project-code/</code>. Delete the old <code>.venv</code> there (its paths are stale).</td><td>Downloader folder holds data and downloader code only</td></tr>
+<tr><td>0.2</td><td>Create <code>project-code/.venv</code> with <code>uv venv --python 3.12</code> and install the pinned requirements.</td><td>Working Python 3.12 environment</td></tr>
+<tr><td>0.3</td><td>Run the downloader tests and <code>bhavcopy_index_filter.py</code> once from the new location to confirm nothing broke in the move.</td><td>233 tests pass, 50 price files unchanged</td></tr>
+<tr><td>0.4</td><td>Check free disk space (250 GiB on 19 Nov, 08:36) and confirm <code>project-db/</code> is on the volume you want.</td><td>Go for the vector store (needs 5 to 14 GB)</td></tr>
+<tr><td>0.5</td><td>Start the data-gap re-download in the background (<code>--index Nifty50 --force</code>).</td><td>Fewer gaps in section 2.3</td></tr>
+</table>
+
+<h3>Phase 1: foundation and technical agent</h3>
+<table>
+<tr><th>#</th><th>Task</th><th>Done when</th></tr>
+<tr><td>1.1</td><td><span class="tag done">done</span> <code>config.py</code> reads <code>config/paths.json</code>. Every path derives from it.</td><td>Test proves paths follow the setting</td></tr>
+<tr><td>1.2</td><td><span class="tag done">done</span> AI gateway with SQLite usage log, provider layer (Ollama, Hugging Face, OpenAI-compatible) and per-role settings with audit log. Still to add: parent call ID in the log and token budgets.</td><td>Tests pass with mocked HTTP: a role switches provider with no code change, keys never reach logs. Not yet run against the real Hugging Face or UpGrad services.</td></tr>
+<tr><td>1.3</td><td>Price loader: trim headers, parse dates, skip the <code>NIFTY 50</code> row, load into DuckDB. Add a corporate-action jump detector.</td><td>Row counts match the files (57,767)</td></tr>
+<tr><td>1.4</td><td>Indicators: SMA, EMA, RSI, MACD, Bollinger, ATR.</td><td>Match hand-computed values</td></tr>
+<tr><td>1.5</td><td><code>market-data</code> MCP server: get_ohlcv, get_returns, get_52w_high_low, get_delivery_pct, get_indicators, top_movers, compare_stocks.</td><td>Tools return correct data for sample stocks</td></tr>
+<tr><td>1.6</td><td>Technical LangGraph agent plus a command-line chat.</td><td>5 test questions answered correctly end to end</td></tr>
+</table>
+
+<h3>Phase 2 to 7</h3>
+<table>
+<tr><th>Phase</th><th>Scope</th><th>Key checks</th></tr>
+<tr><td>2 Fundamentals</td><td>Load the "Data Sheet" of 49 workbooks into DuckDB. Tools: get_financials, compute_cagr, ratio screens. Add the nifty-50.csv snapshot ratios.</td><td>CAGR and ratios match the workbook. Units and consolidated basis are kept.</td></tr>
+<tr><td>3 Document RAG</td><td>Tier 1: transcripts. Tier 2: latest 3 annual reports per stock. Tier 3: latest 4 to 6 presentations. Chroma plus <code>nomic-embed-text</code>. <code>search_documents</code> with filters on symbol, type and year.</td><td>Measure speed on Tier 1 before Tier 2. Spot-check citations against the PDF page.</td></tr>
+<tr><td>4 Guardrails, prompt enhancer, router, Chat tab</td><td>Rules G1 to G8, slim prompt enhancer (name and date resolution, conditional follow-up rewrite, clarify step), router node, synthesizer, Streamlit chat.</td><td>Block and warn cases tested. Name and date resolution tested on aliases ("Tata Motors", "HDFC"). Router accuracy on a labelled question set.</td></tr>
+<tr><td>5 Research analyst</td><td><code>scorecard.py</code> (momentum, quality, valuation, risk; code only, cached per stock per data date) and <code>agent_research_analyst.py</code> (LLM writes the note around the computed numbers, with cited sources and data dates).</td><td>Scorecard values checked by hand. Every number in a note traces to a tool result. Verdict worded as evidence for and against.</td></tr>
+<tr><td>6 Portfolio manager</td><td><code>agent_portfolio_manager.py</code> and <code>mcp_portfolio.py</code>: validate, suggest (from scorecards), build (equal, inverse-vol, risk parity, min-variance, max-Sharpe), metrics, sector exposure, allocate, backtest, compare, swap, rebalance, save and load. Analyst note only for the final 4 to 6 picks.</td><td>Metrics checked by hand. Guardrails enforced inside the tools. 6-stock portfolio finishes without asking the analyst six times by default.</td></tr>
+<tr><td>7 Admin tab</td><td>KPIs and Plotly charts from the usage log, call tree, password from an environment variable, and <b>Model settings</b> (section 5).</td><td>Charts match the log rows. A settings change is applied, audited and reversible.</td></tr>
+</table>
+
+<h3>RAG sizing (from measurements on this machine)</h3>
+<table>
+<tr><th>Scope</th><th>Pages</th><th>Chunks</th><th>Embedding time</th><th>Disk</th></tr>
+<tr><td>Tiers 1 to 3</td><td>about 74k</td><td>about 222k</td><td>1.3 to 1.6 hours</td><td>about 5.4 GB</td></tr>
+<tr><td>Everything</td><td>about 288k</td><td>about 790k</td><td>4.7 to 5.6 hours</td><td>about 14.4 GB</td></tr>
+</table>
+<p class="muted">Basis: about 60 chunks/s for embeddings, about 15.4 KB per chunk in Chroma. With 250 GiB free, the full set fits easily, so Tiers 1 to 3 are now a time choice, not a disk choice. Build Tiers 1 to 3 first and measure answer quality before spending 4.7 to 5.6 hours on the rest.</p>
+
+<h2>5. Model settings in the Admin tab</h2>
+<p>Requested 19 Nov. The Admin tab changes from read-only to a control panel. Settings live in SQLite with an audit table (who, when, old value, new value), and the gateway reads them on every call.</p>
+<table>
+<tr><th>Role</th><th>What it does</th><th>Default</th></tr>
+<tr><td>Chat / agents</td><td>Agents and the synthesizer</td><td>Ollama <code>mistral:7b</code></td></tr>
+<tr><td>Router</td><td>Picks the route</td><td>Ollama <code>mistral:7b</code></td></tr>
+<tr><td>Embedding</td><td>Vectors for chunks and queries</td><td>Ollama <code>nomic-embed-text</code></td></tr>
+<tr><td>Retrieval</td><td>Top-k, filters, optional reranker</td><td>top-k 8, no reranker</td></tr>
+<tr><td>Summary</td><td>Summarizes retrieved passages and long documents</td><td>Ollama <code>mistral:7b</code></td></tr>
+<tr><td>LLM as judge</td><td>Scores answers: groundedness, relevance, citation check</td><td>Ollama <code>gemma4:12b</code></td></tr>
+<tr><td>Chunking</td><td>Strategy: size, overlap, split by page or section</td><td>1000 characters, 15% overlap</td></tr>
+</table>
+<p><b>Providers per role:</b> local Ollama, Hugging Face, or an external OpenAI-compatible API (base URL and API key).</p>
+<table>
+<tr><th>Point</th><th>What it means</th></tr>
+<tr><td><span class="tag risk">note</span> "Chunking model"</td><td><code>nomic-embed-text</code> is the <i>embedding</i> model. Chunking is a strategy (size and splitting), not a model. Both are separate settings.</td></tr>
+<tr><td><span class="tag risk">re-index</span> Changing the embedding model or chunking</td><td>Stored vectors no longer match. One Chroma collection per embedding model and chunk setting; keep the old one until the new one is complete. Tiers 1 to 3 take about 1.3 to 1.6 hours locally. The tab shows an estimate and asks for confirmation.</td></tr>
+<tr><td><span class="tag risk">privacy</span> External providers</td><td>Questions, document text and answers leave the machine, so the "fully local" rule no longer holds for that role. Off by default, opt-in per role, with a visible warning.</td></tr>
+<tr><td>API keys</td><td>From environment variables or <code>config/arpm.env</code> (mode 600). Never stored in SQLite, never logged, only the last 4 characters shown.</td></tr>
+<tr><td>Cost</td><td>External calls cost money per token, so the what-if cost view becomes real cost, using rates the user enters. No prices pre-filled.</td></tr>
+<tr><td>Safety</td><td>Admin password required. "Test connection" runs one small call before saving. Unknown models are rejected. Allow-list, timeouts and budgets apply to every provider.</td></tr>
+<tr><td>Judge independence</td><td>The judge model should differ from the model that wrote the answer. The tab warns if they match.</td></tr>
+<tr><td>Token counts</td><td>Ollama reports exact counts. Other providers differ. The gateway normalizes them and marks estimated counts.</td></tr>
+</table>
+
+<h2>6. Guardrails</h2>
+<table>
+<tr><th>Rule</th><th>Trigger</th><th>Action</th></tr>
+<tr><td>G1</td><td>A stock is not in the Nifty 50 list</td><td>Block</td></tr>
+<tr><td>G2</td><td>7 or more distinct stocks in a portfolio</td><td>Block</td></tr>
+<tr><td>G3</td><td>Fewer than 4 stocks (assumed)</td><td>Block</td></tr>
+<tr><td>G4</td><td>Weights not summing to 100%, or outside 5% to 40% (assumed)</td><td>Block</td></tr>
+<tr><td>G5</td><td>Over 50% in one industry group</td><td>Warn</td></tr>
+<tr><td>G6</td><td>Under 1 year of price history (TMPV today)</td><td>Warn</td></tr>
+<tr><td>G7</td><td>Every portfolio answer</td><td>Add "research tool, not investment advice", data date and the unadjusted-price note</td></tr>
+<tr><td>G8</td><td>Tool calls over 12, agent steps over 6, or token budget exceeded</td><td>Stop</td></tr>
+</table>
+
+<h2>7. Risks and open decisions</h2>
+<table>
+<tr><th>Item</th><th>Why it matters</th><th>Proposed default</th></tr>
+<tr><td><span class="tag risk">risk</span> Wrong numbers from unadjusted prices</td><td>Splits and demergers distort returns</td><td>Jump detector and visible caveat</td></tr>
+<tr><td><span class="tag done">cleared</span> Disk space</td><td>Was 98% used (18 GiB free) earlier on 19 Nov. Now 72% used (250 GiB free).</td><td>Recheck before the vector build.</td></tr>
+<tr><td><span class="tag risk">risk</span> Local model quality and speed</td><td>Typical answers take 20 to 45 s on <code>gemma4:12b</code></td><td>Default to <code>mistral:7b</code>. Use a labelled test set to compare.</td></tr>
+<tr><td><span class="tag risk">risk</span> Survivorship bias and no benchmark history</td><td>Back-test and beta results look better or different than reality</td><td>State the limits. Consider downloading index history.</td></tr>
+<tr><td>Minimum portfolio size</td><td>You gave only the maximum of 6</td><td>Block fewer than 4</td></tr>
+<tr><td>Weight limits</td><td>Not specified</td><td>5% minimum, 40% maximum</td></tr>
+<tr><td>Admin access, logging detail</td><td>Privacy and access</td><td>Env-var password. Log question previews only.</td></tr>
+<tr><td>Prompt enhancer scope</td><td>A generic LLM rewrite can drop details or change meaning on 7B to 12B models, and adds 3 to 8 s per question</td><td>Slim version only. Plain code for names and dates. One LLM call only for follow-ups that lack a symbol. Not in the original plan; added 19 Nov.</td></tr>
+<tr><td><span class="tag done">dropped</span> Langfuse</td><td>Needs containers. You said no Docker.</td><td>Own usage log and Admin tab instead.</td></tr>
+<tr><td>No Docker</td><td>Decided 19 Nov</td><td>Plain processes in the venv, started and stopped by <code>bin/*.sh</code>.</td></tr>
+<tr><td><span class="tag risk">question</span> UpGrad API format</td><td>The final project may require RAG embedding and retrieval on UpGrad's API. Its request format is not known yet.</td><td>Generic OpenAI-compatible adapter built. Send the API documentation or an example request. If it differs, one class in <code>providers.py</code> changes, nothing else.</td></tr>
+<tr><td><span class="tag risk">risk</span> Re-index when the embedding provider changes</td><td>Vectors from different models cannot be mixed</td><td>Each provider, model and chunking gets its own Chroma collection. Old one kept until the new one is complete.</td></tr>
+<tr><td><span class="tag risk">risk</span> EC2 m6i / m7i / m8i have no GPU</td><td>Local Ollama on CPU is slow for 7B models. This is a general expectation, not measured here.</td><td>Keep the switch dynamic: Ollama on EC2, Hugging Face, or a GPU instance (g5, g6).</td></tr>
+<tr><td>Hugging Face mode</td><td>Built as the hosted API. A local Hugging Face model is not built (2 to 10 GB of disk each).</td><td>Ask if you want the local mode.</td></tr>
+<tr><td><span class="tag risk">risk</span> Nested agent latency</td><td>Portfolio manager &#8594; analyst &#8594; agents multiplies LLM calls. A full note takes about 1 to 3 minutes.</td><td>Code scorecard for screening, analyst note only for final picks, depth limit 3, shared budgets.</td></tr>
+</table>
+
+<h2>8. Immediate next steps</h2>
+<ol>
+  <li>Confirm the defaults in section 7 (including the slim prompt enhancer and the call chain), and answer the "Upgrad" and Hugging Face questions.</li>
+  <li>Run Phase 0 (move the skeleton, recreate the venv, re-run the tests, start the gap re-download).</li>
+  <li>Start Phase 1 with tests first: config, gateway, price loader.</li>
+</ol>
+
+<footer>Made with IBM Bob</footer>
+</main>
+</body>
+</html>
